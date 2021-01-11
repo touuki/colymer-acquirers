@@ -135,6 +135,7 @@ class Weibo(Site):
         self.update_config()
 
     def update_config(self):
+        self.session.get('https://weibo.com')
         headers = {
             'Referer': 'https://m.weibo.cn',
             'x-requested-with': 'XMLHttpRequest'
@@ -184,6 +185,7 @@ class Weibo(Site):
             }
 
     def statuses_mymblog(self, uid, page):
+        # 正常返回20条，已知在好友圈可见等情况下返回数量小于20
         params = {
             'uid': uid,
             'page': page,
@@ -207,3 +209,16 @@ class Weibo(Site):
                 response.status_code, response.reason, result))
 
         return result['data']
+
+    def detail(self, mid):
+        #response = self.session.get('https://m.weibo.cn/status/{}'.format(mid))
+        response = self.session.get('https://m.weibo.cn/detail/{}'.format(mid))
+        if not response.ok:
+            raise Exception('detail failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+
+        search = re.search(r'var \$render_data = \[([\s\S]*)\]\[0\] \|\| {};', response.text)
+        if search:
+            return json.loads(search.group(1))
+        else:
+            return None
