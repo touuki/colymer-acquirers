@@ -27,9 +27,13 @@ class Colymer(Site):
                 response.status_code, response.reason, response.text))
         return response.json()['_id']
 
-    def get_article(self, collection, _id):
+    def get_article(self, collection, _id, projection=None):
+        params = {}
+        if projection is not None:
+            params['projection'] = json.dumps(
+                projection, separators=(',', ':'))
         response = self.session.get(urllib.parse.urljoin(
-            self.api_prefix, 'article/{}/{}'.format(collection, _id)))
+            self.api_prefix, 'article/{}/{}'.format(collection, _id)), params=params)
         if not response.ok:
             raise Exception('GET article failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))

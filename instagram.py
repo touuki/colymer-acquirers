@@ -97,80 +97,106 @@ def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=Non
     }
 
 
+def get_block(max_id=None):
+    match = {'author.id': user_id, 'metadata.bottom__id': {'$exists': True}}
+    if max_id is not None:
+        match['id'] = {'$lt': max_id}
+    data = colymer.get_articles(collection, [
+        {'$match': match},
+        {'$sort': {'id': -1}},
+        {'$limit': 1},
+        {'$project': {
+            'top__id': '$_id',
+            'top_id': '$id',
+            'bottom__id': '$metadata.bottom__id'
+        }}
+    ], collation={
+        'locale': 'en_US',
+        'numericOrdering': True
+    })
+
+    result = {
+        'top__id': None,
+        'top_id': None,
+        'bottom__id': None,
+        'bottom_id': None,
+        'end_cursor': None
+    }
+    if data:
+        result['top__id'] = data[0]['top__id']
+        result['top_id'] = data[0]['top_id']
+        result['bottom__id'] = data[0]['bottom__id']
+        if data[0]['bottom__id'] is not None:
+            data = colymer.get_article(collection, result['bottom__id'], projection={
+                'metadata.end_cursor': 1,
+                'id': 1
+            })
+            result['bottom_id'] = data['id']
+            result['end_cursor'] = data['metadata']['end_cursor']
+
+    return result
+
+
+def set_block_pointer(top__id, bottom__id):
+    colymer.put_article(collection, top__id, {
+                        '$set': {'metadata.bottom__id': bottom__id}})
+
+
+def scan_user(user_id):
+    top__id = None
+    bottom__id = None
+    max_id = None
+    min_id = None
+    cursor = None
+    while True:
+        block = get_block(max_id)
+        min_id = block['top_id']
+        while True:
+            result = owner_to_timeline_media_handle(
+                user_id, cursor=cursor, min_id=min_id)
+            time.sleep(request_interval)
+
+            if top__id is None:
+                if result['_ids']:
+                    top__id = result['_ids'][0]
+                elif block['top__id'] is not None:
+                    assert result['less_than_min_id']
+                    top__id = block['top__id']
+                    bottom__id = block['bottom__id']
+                    cursor = block['end_cursor']
+                    break
+                else:
+                    return
+
+            if result['less_than_min_id']:
+                bottom__id = block['bottom__id']
+                cursor = block['end_cursor']
+                set_block_pointer(top__id, bottom__id)
+                break
+
+            if not result['has_next_page']:
+                bottom__id = None
+                set_block_pointer(top__id, bottom__id)
+                break
+
+            if result['_ids']:
+                bottom__id = result['_ids'][-1]
+                set_block_pointer(top__id, bottom__id)
+
+            cursor = result['end_cursor']
+
+        if bottom__id is None:
+            break
+        max_id = block['bottom_id']
+
+
 if os.path.exists(cookie_file):
     instagram.load_cookies(cookie_file)
 
 if __name__ == "__main__":
     try:
         for user_id in user_ids:
-            data = colymer.get_articles(collection, [
-                {'$match': {'author.id': user_id, 'metadata.top': True}},
-                {'$sort': {'id': -1}},
-                {'$limit': 1},
-                {'$project': {'id': 1}}
-            ], collation={
-                'locale': 'en_US',
-                'numericOrdering': True
-            })
+            scan_user(user_id)
 
-            if data:
-                min_id = data[0]['id']
-            else:
-                min_id = None
-
-            top_id = None
-            cursor = None
-            has_next_page = True
-            while has_next_page:
-                result = owner_to_timeline_media_handle(
-                    user_id, cursor=cursor, min_id=min_id)
-                if top_id is None and result['_ids']:
-                    if min_id is None:
-                        colymer.put_article(
-                            collection, result['_ids'][0], {'$set': {'metadata.top': True}})
-                    else:
-                        top_id = result['_ids'][0]
-                has_next_page = result['has_next_page']
-                cursor = result['end_cursor']
-                time.sleep(request_interval)
-                if result['less_than_min_id']:
-                    break
-
-            if top_id is not None:
-                colymer.put_article(
-                    collection, top_id, {'$set': {'metadata.top': True}})
-
-            if result['_ids'] and not has_next_page:
-                colymer.put_article(
-                    collection, result['_ids'][-1], {'$set': {'metadata.bottom': True}})
-
-            data = colymer.get_articles(collection, [
-                {'$match': {'author.id': user_id}},
-                {'$sort': {'id': 1}},
-                {'$limit': 1},
-                {'$project': {
-                    'id': 1,
-                    'cursor': '$metadata.cursor',
-                    'bottom': '$metadata.bottom'
-                }}
-            ], collation={
-                'locale': 'en_US',
-                'numericOrdering': True
-            })
-
-            if data and 'bottom' not in data[0]:
-                max_id = data[0]['id']
-                cursor = data[0]['cursor']
-                has_next_page = True
-                while has_next_page:
-                    result = owner_to_timeline_media_handle(
-                        user_id, cursor=cursor, max_id=max_id)
-                    has_next_page = result['has_next_page']
-                    cursor = result['end_cursor']
-                    time.sleep(request_interval)
-
-                if result['_ids']:
-                    colymer.put_article(
-                        collection, result['_ids'][-1], {'$set': {'metadata.bottom': True}})
     finally:
         instagram.save_cookies(cookie_file)
