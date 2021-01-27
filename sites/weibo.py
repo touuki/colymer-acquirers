@@ -183,6 +183,40 @@ class Weibo(Site):
                 'width': int(pid[23:26], 36),
                 'height': int(pid[26:29], 36)
             }
+    
+    def getIndex_timeline(self, uid, since_id=None, page=None):
+        # 正常返回10条（不包括置顶及其他），如果有不可见则不包括在内
+        # 这样存在问题为如果有连续10条以上不可见，则扫描会中断
+        # 从而无法判断是否真的扫描到底，官方的网页同样是此问题
+        # 只能等官方api改进
+        params = {
+            'type': 'uid',
+            'value': uid,
+            'containerid': '107603{}'.format(uid)
+        }
+        if since_id is not None:
+            params['since_id'] = since_id
+        if page is not None:
+            params['page'] = page
+        headers = {
+            'Referer': 'https://m.weibo.cn/u/{}'.format(uid),
+            'x-requested-with': 'XMLHttpRequest'
+        }
+        xsrf_token = self.session.cookies.get(
+            'XSRF-TOKEN', domain='.m.weibo.cn')
+        if xsrf_token:
+            headers['x-xsrf-token'] = xsrf_token
+        response = self.session.get('https://m.weibo.cn/api/container/getIndex',
+                                    params=params, headers=headers, allow_redirects=False)
+        if response.status_code != 200:
+            raise Exception('getIndex_timeline failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+        result = response.json()
+        if not result['ok'] and result['msg'] != '这里还没有内容':
+            raise Exception('getIndex_timeline failed. {} {} {}'.format(
+                response.status_code, response.reason, result))
+
+        return result['data']
 
     def statuses_mymblog(self, uid, page):
         # 正常返回20条，已知在好友圈可见等情况下返回数量小于20
@@ -201,11 +235,11 @@ class Weibo(Site):
         response = self.session.get('https://weibo.com/ajax/statuses/mymblog',
                                     params=params, headers=headers, allow_redirects=False)
         if response.status_code != 200:
-            raise Exception('getIndex_timeline failed. {} {} {}'.format(
+            raise Exception('statuses_mymblog failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
         result = response.json()
         if not result['ok']:
-            raise Exception('getIndex_timeline failed. {} {} {}'.format(
+            raise Exception('statuses_mymblog failed. {} {} {}'.format(
                 response.status_code, response.reason, result))
 
         return result['data']
