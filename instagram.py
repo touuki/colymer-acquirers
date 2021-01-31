@@ -27,6 +27,7 @@ def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=Non
     edges = data['user']['edge_owner_to_timeline_media']['edges']
     large_than_max_id = False
     less_than_min_id = False
+    last_id = None
 
     _ids = []
     for edge in edges:
@@ -79,16 +80,16 @@ def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=Non
             'time': datetime.fromtimestamp(node['taken_at_timestamp']).isoformat() + 'Z',
             'attachments': attachments,
             'metadata': {
-                'original_data': node,
-                'cursor': cursor,
-                'end_cursor': page_info['end_cursor']
+                'original_data': node
             }
         }, replace=False)
 
         _ids.append(_id)
+        last_id = node['id']
 
     return {
         '_ids': _ids,
+        'last_id': last_id,
         'edges_count': len(edges),
         'end_cursor': page_info['end_cursor'],
         'has_next_page': page_info['has_next_page'],
@@ -97,8 +98,8 @@ def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=Non
     }
 
 
-def get_block(max_id=None):
-    match = {'author.id': user_id, 'metadata.bottom__id': {'$exists': True}}
+def get_block(user_id, max_id=None):
+    match = {'author.id': user_id, 'metadata.bottom': {'$exists': True}}
     if max_id is not None:
         match['id'] = {'$lt': max_id}
     data = colymer.get_articles(collection, [
@@ -106,88 +107,76 @@ def get_block(max_id=None):
         {'$sort': {'id': -1}},
         {'$limit': 1},
         {'$project': {
-            'top__id': '$_id',
-            'top_id': '$id',
-            'bottom__id': '$metadata.bottom__id'
+            '_id': 1,
+            'id': 1,
+            'bottom': '$metadata.bottom'
         }}
     ], collation={
         'locale': 'en_US',
         'numericOrdering': True
     })
 
-    result = {
-        'top__id': None,
-        'top_id': None,
-        'bottom__id': None,
-        'bottom_id': None,
-        'end_cursor': None
-    }
     if data:
-        result['top__id'] = data[0]['top__id']
-        result['top_id'] = data[0]['top_id']
-        result['bottom__id'] = data[0]['bottom__id']
-        if data[0]['bottom__id'] is not None:
-            data = colymer.get_article(collection, result['bottom__id'], projection={
-                'metadata.end_cursor': 1,
-                'id': 1
-            })
-            result['bottom_id'] = data['id']
-            result['end_cursor'] = data['metadata']['end_cursor']
-
-    return result
+        return data[0]
+    else:
+        return None
 
 
-def set_block_pointer(top__id, bottom__id):
-    colymer.put_article(collection, top__id, {
-                        '$set': {'metadata.bottom__id': bottom__id}})
+def set_block_bottom(_id, bottom):
+    colymer.put_article(collection, _id, {
+                        '$set': {'metadata.bottom': bottom}})
 
 
 def scan_user(user_id):
-    top__id = None
-    bottom__id = None
+    top = None
+    bottom = {
+        'id': None,
+        'end_cursor': None
+    }
     max_id = None
     min_id = None
-    cursor = None
     while True:
-        block = get_block(max_id)
-        min_id = block['top_id']
+        block = get_block(user_id, max_id)
+        min_id = block['id'] if block else None
         while True:
             result = owner_to_timeline_media_handle(
-                user_id, cursor=cursor, min_id=min_id)
+                user_id, cursor=bottom['end_cursor'], min_id=min_id)
             time.sleep(request_interval)
 
-            if top__id is None:
+            if top is None:
                 if result['_ids']:
-                    top__id = result['_ids'][0]
-                elif block['top__id'] is not None:
+                    top = result['_ids'][0]
+                elif block is not None:
                     assert result['less_than_min_id']
-                    top__id = block['top__id']
-                    bottom__id = block['bottom__id']
-                    cursor = block['end_cursor']
+                    top = block['_id']
+                    bottom = block['bottom']
                     break
                 else:
+                    print('Seem no data for user_id:{}.'.format(user_id))
                     return
 
             if result['less_than_min_id']:
-                bottom__id = block['bottom__id']
-                cursor = block['end_cursor']
-                set_block_pointer(top__id, bottom__id)
+                bottom = block['bottom']
+                set_block_bottom(top, bottom)
                 break
 
             if not result['has_next_page']:
-                bottom__id = None
-                set_block_pointer(top__id, bottom__id)
+                bottom = {
+                    'id': result['last_id'],
+                    'end_cursor': None
+                }
+                set_block_bottom(top, bottom)
                 break
 
-            if result['_ids']:
-                bottom__id = result['_ids'][-1]
-                set_block_pointer(top__id, bottom__id)
+            bottom = {
+                'id': result['last_id'],
+                'end_cursor': result['end_cursor']
+            }
+            set_block_bottom(top, bottom)
 
-            cursor = result['end_cursor']
-
-        if bottom__id is None:
+        if bottom['end_cursor'] is None:
             break
-        max_id = block['bottom_id']
+        max_id = block['bottom']['id']
 
 
 if os.path.exists(cookie_file):
