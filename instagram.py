@@ -1,8 +1,10 @@
 import requests
 from sites import Instagram, Colymer
 from datetime import datetime
+from urllib.parse import urlparse
 import time
 import os
+import posixpath
 
 request_interval = 60
 user_ids = ['39817910000']
@@ -22,14 +24,18 @@ colymer = Colymer('http://localhost:3000/api/')
 
 
 def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=None):
+    print('owner_to_timeline_media: user_id:{} cursor:{}'.format(user_id, cursor))
     data = instagram.owner_to_timeline_media(user_id, after=cursor)
     page_info = data['user']['edge_owner_to_timeline_media']['page_info']
     edges = data['user']['edge_owner_to_timeline_media']['edges']
     large_than_max_id = False
     less_than_min_id = False
     last_id = None
+    top = {
+        'id': None,
+        '_id': None
+    }
 
-    _ids = []
     for edge in edges:
         node = edge['node']
         if min_id is not None and int(node['id']) <= int(min_id):
@@ -40,32 +46,41 @@ def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=Non
             continue
 
         attachments = []
-        if node['__typename'] == 'GraphSidecar':
-            for child_edge in node['edge_sidecar_to_children']['edges']:
-                child_node = child_edge['node']
+
+        def append_attachment(child_node):
+            url = urlparse(child_node['display_url'])
+            attachments.append({
+                'id': child_node['id'],
+                'filename': posixpath.basename(url.path),
+                'content_type': 'image/jpeg',
+                'original_url': child_node['display_url'],
+                'metadata': child_node['dimensions'],
+                'persist_info': {
+                    'directly_transfer': True,
+                    'path': url.path,
+                    'referer': 'https://www.instagram.com/{}/'.format(node['owner']['username']),
+                }
+            })
+            if child_node['is_video']:
+                url = urlparse(child_node['video_url'])
                 attachments.append({
                     'id': child_node['id'],
-                    'original_url': child_node['display_url'],
-                    'metadata': child_node['dimensions']
+                    'filename': posixpath.basename(url.path),
+                    'content_type': 'video/mp4',
+                    'original_url': child_node['video_url'],
+                    'metadata': child_node['dimensions'],
+                    'persist_info': {
+                        'directly_transfer': True,
+                        'path': url.path,
+                        'referer': 'https://www.instagram.com/{}/'.format(node['owner']['username']),
+                    }
                 })
-                if child_node['is_video']:
-                    attachments.append({
-                        'id': child_node['id'],
-                        'original_url': child_node['video_url'],
-                        'metadata': child_node['dimensions']
-                    })
+
+        if node['__typename'] == 'GraphSidecar':
+            for child_edge in node['edge_sidecar_to_children']['edges']:
+                append_attachment(child_edge['node'])
         else:
-            attachments.append({
-                'id': node['id'],
-                'original_url': node['display_url'],
-                'metadata': node['dimensions']
-            })
-            if node['is_video']:
-                attachments.append({
-                    'id': node['id'],
-                    'original_url': node['video_url'],
-                    'metadata': node['dimensions']
-                })
+            append_attachment(node)
 
         _id = colymer.post_article(collection, {
             'author': {
@@ -82,13 +97,16 @@ def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=Non
             'metadata': {
                 'original_data': node
             }
-        }, replace=False)
+        }, overwrite=False)
 
-        _ids.append(_id)
+        if top['id'] is None or int(top['id']) < int(node['id']):
+            top['id'] = node['id']
+            top['_id'] = _id
+
         last_id = node['id']
 
     return {
-        '_ids': _ids,
+        'top': top,
         'last_id': last_id,
         'edges_count': len(edges),
         'end_cursor': page_info['end_cursor'],
@@ -144,13 +162,12 @@ def scan_user(user_id):
             time.sleep(request_interval)
 
             if top is None:
-                if result['_ids']:
-                    top = result['_ids'][0]
-                elif block is not None:
-                    assert result['less_than_min_id']
+                if block and (not result['top']['id'] or int(result['top']['id']) <= int(block['id'])):
                     top = block['_id']
                     bottom = block['bottom']
                     break
+                elif result['top']['id']:
+                    top = result['top']['_id']
                 else:
                     print('Seem no data for user_id:{}.'.format(user_id))
                     return

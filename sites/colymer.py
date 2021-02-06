@@ -19,9 +19,9 @@ class Colymer(Site):
                 response.status_code, response.reason, response.text))
         return response.json()
 
-    def post_article(self, collection, article, resolve_attachments=False, replace=False):
+    def post_article(self, collection, article, resolve_attachments=False, overwrite=False):
         response = self.session.post(urllib.parse.urljoin(self.api_prefix, 'article/{}'.format(collection)),
-                                     params={'resolve_attachments': resolve_attachments, 'replace': replace}, json=article)
+                                     params={'resolve_attachments': resolve_attachments, 'overwrite': overwrite}, json=article)
         if not response.ok:
             raise Exception('POST article failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
