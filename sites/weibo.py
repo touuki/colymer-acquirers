@@ -158,12 +158,14 @@ class Weibo(Site):
 
     @staticmethod
     def pid2imgs(pid):
+        """weibo.com接口不易获取图像URL的产物，现在使用m.weibo.cn的接口
+        可以直接获取图像链接，就不再需要这个方法了。"""
         typ = 'gif' if pid[21] == 'g' else 'jpg'
 
         if pid[9] == 'w' or pid[9] == 'y' and len(pid) >= 32:
-            # 微博采用hash算法将pid映射到wx1,wx2,wx3,wx4四个子域名
-            # 但是不知道是不是通用hash算法，位运算太麻烦了懒得写了
-            # 反正四个子域名都能用，先这样吧
+            """微博采用hash算法将pid映射到wx1,wx2,wx3,wx4四个子域名
+            但是不知道是不是通用hash算法，位运算太麻烦了懒得写了
+            反正四个子域名都能用，先这样吧"""
             s = "https://{}{}.sinaimg.cn/%s/{}.{}".format(
                 'ww' if pid[9] == 'w' else 'wx', 1, pid, typ)
         else:
@@ -185,10 +187,10 @@ class Weibo(Site):
             }
     
     def getIndex_timeline(self, uid, since_id=None, page=None):
-        # 正常返回10条（不包括置顶及其他），如果有不可见则不包括在内
-        # 这样存在问题为如果有连续10条以上不可见，则扫描会中断
-        # 从而无法判断是否真的扫描到底，官方的网页同样是此问题
-        # 只能等官方api改进
+        """正常返回10条（不包括置顶及其他），如果有不可见则不包括在内
+        这样存在问题为如果有连续10条以上不可见，则扫描会中断
+        从而无法判断是否真的扫描到底，官方的网页同样是此问题
+        只能等官方api改进"""
         params = {
             'type': 'uid',
             'value': uid,
@@ -219,7 +221,9 @@ class Weibo(Site):
         return result['data']
 
     def statuses_mymblog(self, uid, page):
-        # 正常返回20条，已知在好友圈可见等情况下返回数量小于20
+        """由于m.weibo.cn的接口更方便图像链接、快转等的获取，
+        并且其时间戳问题已被官方修复，因此此方法不再维护。
+        正常返回20条，已知在好友圈可见等情况下返回数量小于20"""
         params = {
             'uid': uid,
             'page': page,

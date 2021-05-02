@@ -22,7 +22,7 @@ weibo = Weibo(
     },
     cookies=cookies
 )
-colymer = Colymer('http://localhost:3000/api/')
+colymer = Colymer('http://192.168.30.1:3000/api/')
 
 
 def fast_retweeted_handle(mid):
@@ -248,6 +248,8 @@ def scan_user(user_id):
 # if False:
 if __name__ == "__main__":
     try:
+        if not weibo.is_logined():
+            weibo.login()
         for user_id in user_ids:
             scan_user(user_id)
 

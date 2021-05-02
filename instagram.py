@@ -4,6 +4,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 import time
 import os
+import pickle
 import posixpath
 
 request_interval = 60
@@ -11,6 +12,11 @@ user_ids = ['39817910000']
 collection = 'instagram'
 cookie_file = os.path.join(os.path.dirname(
     __file__), 'cookies/instagram.cookie')
+cookies = None
+if os.path.exists(cookie_file):
+    with open(cookie_file, 'rb') as f:
+        cookies = pickle.load(f)
+
 instagram = Instagram(
     headers={
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
@@ -18,9 +24,10 @@ instagram = Instagram(
     proxies={
         'http': 'http://localhost:17070',
         'https': 'http://localhost:17070',
-    }
+    },
+    cookies=cookies
 )
-colymer = Colymer('http://localhost:3000/api/')
+colymer = Colymer('http://192.168.30.1:3000/api/')
 
 
 def owner_to_timeline_media_handle(user_id, cursor=None, min_id=None, max_id=None):
@@ -195,9 +202,6 @@ def scan_user(user_id):
             break
         max_id = block['bottom']['id']
 
-
-if os.path.exists(cookie_file):
-    instagram.load_cookies(cookie_file)
 
 if __name__ == "__main__":
     try:
