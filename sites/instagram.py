@@ -13,7 +13,7 @@ class Instagram(Site):
         }
         if after is not None:
             variables['after'] = after
-            
+
         headers = {
             'Referer': 'https://www.instagram.com/',
             'x-requested-with': 'XMLHttpRequest'

@@ -185,7 +185,7 @@ class Weibo(Site):
                 'width': int(pid[23:26], 36),
                 'height': int(pid[26:29], 36)
             }
-    
+
     def getIndex_timeline(self, uid, since_id=None, page=None):
         """正常返回10条（不包括置顶及其他），如果有不可见则不包括在内
         这样存在问题为如果有连续10条以上不可见，则扫描会中断
@@ -255,7 +255,8 @@ class Weibo(Site):
             raise Exception('detail failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
 
-        search = re.search(r'var \$render_data = \[([\s\S]*)\]\[0\] \|\| {};', response.text)
+        search = re.search(
+            r'var \$render_data = \[([\s\S]*)\]\[0\] \|\| {};', response.text)
         if search:
             return json.loads(search.group(1))
         else:

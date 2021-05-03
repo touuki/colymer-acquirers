@@ -9,6 +9,12 @@ class Twitter(Site):
     def __init__(self, **kw):
         super().__init__(**kw)
         self._get_guest_token()
+        # queryIds可考虑从 https://abs.twimg.com/responsive-web/client-web/main.79e382f5.js 动态获取
+        self.queryIds = {
+            'UserByRestIdWithoutResults': 'WN6Hck-Pwm-YP0uxVj1oMQ',
+            'UserTweets': 'VFKEUw-6LUwwZtrnSuX_PA',
+            'UserTweetsAndReplies': 'moGqlVrYb60N3gzx3iTIpA',
+        }
 
     def _get_guest_token(self):
         guest_token = self.session.cookies.get(
@@ -70,11 +76,7 @@ class Twitter(Site):
             else:
                 raise Exception('{} failed. {} {} {}'.format(
                     method_name, response.status_code, response.reason, response.text))
-        result = response.json()
-        if 'data' not in result:
-            raise Exception('{} failed. {} {} {}'.format(
-                method_name, response.status_code, response.reason, response.text))
-        return result['data']
+        return response.json()
 
     def user_by_rest_id_without_results(self, user_id):
         """通过 https://twitter.com/i/user/:user_id 页面可发现该请求"""
@@ -83,9 +85,15 @@ class Twitter(Site):
             "withHighlightedLabel": True
         }
 
-        response = self.session.get('https://twitter.com/i/api/graphql/WN6Hck-Pwm-YP0uxVj1oMQ/UserByRestIdWithoutResults', params={
-            'variables': json.dumps(variables, separators=(',', ':'))
-        }, headers=self._get_api_headers(), allow_redirects=False)
+        response = self.session.get(
+            'https://twitter.com/i/api/graphql/{}/UserByRestIdWithoutResults'.format(
+                self.queryIds['UserByRestIdWithoutResults']),
+            params={
+                'variables': json.dumps(variables, separators=(',', ':'))
+            },
+            headers=self._get_api_headers(),
+            allow_redirects=False
+        )
         return self._postprocess_response(response, 'user_by_rest_id_without_results')
 
     def user_tweets(self, user_id, count=20, cursor=None):
@@ -104,7 +112,40 @@ class Twitter(Site):
         if cursor is not None:
             variables['cursor'] = cursor
 
-        response = self.session.get('https://twitter.com/i/api/graphql/VFKEUw-6LUwwZtrnSuX_PA/UserTweets', params={
-            'variables': json.dumps(variables, separators=(',', ':'))
-        }, headers=self._get_api_headers(), allow_redirects=False)
+        response = self.session.get(
+            'https://twitter.com/i/api/graphql/{}/UserTweets'.format(
+                self.queryIds['UserTweets']),
+            params={
+                'variables': json.dumps(variables, separators=(',', ':'))
+            },
+            headers=self._get_api_headers(),
+            allow_redirects=False
+        )
         return self._postprocess_response(response, 'user_tweets')
+
+    def user_tweets_and_replies(self, user_id, count=20, cursor=None):
+        variables = {
+            "userId": user_id,
+            "count": count,
+            "withHighlightedLabel": True,
+            "withTweetQuoteCount": True,
+            "includePromotedContent": True,
+            "withTweetResult": False,
+            "withUserResults": False,
+            "withVoice": False,
+            "withNonLegacyCard": True,
+            "withBirdwatchPivots": False
+        }
+        if cursor is not None:
+            variables['cursor'] = cursor
+
+        response = self.session.get(
+            'https://twitter.com/i/api/graphql/{}/UserTweetsAndReplies'.format(
+                self.queryIds['UserTweetsAndReplies']),
+            params={
+                'variables': json.dumps(variables, separators=(',', ':'))
+            },
+            headers=self._get_api_headers(),
+            allow_redirects=False
+        )
+        return self._postprocess_response(response, 'user_tweets_and_replies')
