@@ -19,3 +19,9 @@ class Site:
     def load_cookies(self, path):
         with open(path, 'rb') as f:
             self.session.cookies.update(pickle.load(f))
+
+    def is_logined(self):
+        return True
+
+    def login(self):
+        pass

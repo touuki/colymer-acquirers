@@ -1,11 +1,33 @@
 from .site import Site
+from getpass import getpass
 import json
+import time
 
 
 class Instagram(Site):
     # story url: Login required GET https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={user_id}
 
-    # 5/1/2021 未登录状态下已无法获取
+    def is_logined(self):
+        response = self.session.get('https://www.instagram.com/')
+        return "window.__additionalDataLoaded('feed'" in response.text
+
+    def login(self, sessionid=None):
+        if sessionid is None:
+            sessionid = getpass('Please enter sessionid: ')
+        self.session.cookies.clear()
+        self.session.cookies.set(
+            'sessionid',
+            sessionid,
+            domain='.instagram.com',
+            secure=True,
+            expires=int(time.time()) + 365 * 24 * 3600,
+            discard=False,
+            rest={'HttpOnly': True}
+        )
+
+        if not self.is_logined():
+            raise Exception('Instagram login failed.')
+
     def owner_to_timeline_media(self, user_id, first=12, after=None):
         variables = {
             'id': user_id,

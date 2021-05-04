@@ -28,24 +28,14 @@ class Twitter(Site):
                 response.text
             )
             if searchObj:
-                self.session.cookies.set_cookie(http.cookiejar.Cookie(
-                    version=0,
-                    name='gt',
-                    value=searchObj.group(1),
-                    port=None,
-                    port_specified=False,
+                self.session.cookies.set(
+                    'gt',
+                    searchObj.group(1),
                     domain='.twitter.com',
-                    domain_specified=True,
-                    domain_initial_dot=True,
-                    path='/',
-                    path_specified=True,
                     secure=True,
                     expires=int(time.time()) + int(searchObj.group(2)),
-                    discard=False,
-                    comment=None,
-                    comment_url=None,
-                    rest={}
-                ))
+                    discard=False
+                )
                 return searchObj.group(1)
             else:
                 raise Exception('Can not obtain guest token.')
