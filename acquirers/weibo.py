@@ -88,7 +88,7 @@ class Weibo(Acquirer):
         data = self.weibo.getIndex_timeline(user_id, since_id=since_id)
         
         if 'cardlistInfo' in data and 'since_id' in data['cardlistInfo']:
-            result['bottom_cursor'] = data['cardlistInfo']['since_id']
+            result['bottom_cursor'] = str(data['cardlistInfo']['since_id'])
             result['has_next'] = True
         else:
             result['bottom_cursor'] = None

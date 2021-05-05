@@ -17,6 +17,7 @@ class Twitter(Site):
         }
 
     def _get_guest_token(self):
+        self.session.cookies.clear_expired_cookies()
         guest_token = self.session.cookies.get(
             'gt', domain='.twitter.com')
         if guest_token:

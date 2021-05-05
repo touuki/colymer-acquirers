@@ -37,8 +37,7 @@ if __name__ == "__main__":
         'http': 'http://localhost:7070',
         'https': 'http://localhost:7070',
     }
-    #colymer = Colymer('http://192.168.30.1:3000/api/')
-    colymer = Colymer('http://localhost:3000/api/')
+    colymer = Colymer('http://192.168.30.1:3000/api/')
 
     cookie_file = os.path.join(os.path.dirname(
         __file__), 'cookies/{}.cookie'.format(site_name))

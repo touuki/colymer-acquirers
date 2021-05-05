@@ -12,10 +12,7 @@ class Instagram(Acquirer):
         self.request_interval = request_interval
 
     @staticmethod
-    def append_attachment(attachments, child_node, node=None):
-        if node is None:
-            node = child_node
-
+    def append_attachment(attachments, child_node):
         url = urlparse(child_node['display_url'])
         attachments.append({
             'id': child_node['id'],
@@ -26,7 +23,7 @@ class Instagram(Acquirer):
             'persist_info': {
                 'directly_transfer': True,
                 'path': url.path,
-                'referer': 'https://www.instagram.com/{}/'.format(node['owner']['username']),
+                'referer': 'https://www.instagram.com/',
             }
         })
         if child_node['is_video']:
@@ -40,7 +37,7 @@ class Instagram(Acquirer):
                 'persist_info': {
                     'directly_transfer': True,
                     'path': url.path,
-                    'referer': 'https://www.instagram.com/{}/'.format(node['owner']['username']),
+                    'referer': 'https://www.instagram.com/',
                 }
             })
     
@@ -75,7 +72,7 @@ class Instagram(Acquirer):
 
             if node['__typename'] == 'GraphSidecar':
                 for child_edge in node['edge_sidecar_to_children']['edges']:
-                    Instagram.append_attachment(attachments, child_edge['node'], node)
+                    Instagram.append_attachment(attachments, child_edge['node'])
             else:
                 Instagram.append_attachment(attachments, node)
 
