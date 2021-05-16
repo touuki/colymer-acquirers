@@ -1,8 +1,10 @@
 from sites import *
-import os, sys
+import os
+import sys
 import acquirers
 import pickle
 import getopt
+
 
 def usage(code=0):
     print("""Usage: python scan.py [OPTION]... SITE
@@ -11,13 +13,14 @@ def usage(code=0):
     -i:         only load parameters and doesn't run scanning; useful for python -i""")
     sys.exit(code)
 
+
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "hi",['help'])
+    opts, args = getopt.getopt(sys.argv[1:], "hi", ['help'])
     inspect = False
     for op, value in opts:
         if op == "-i":
             inspect = True
-        elif op in ("-h","--help"):
+        elif op in ("-h", "--help"):
             usage()
 
     if len(args) == 0 or args[0] not in ['weibo', 'instagram', 'twitter']:
@@ -28,7 +31,7 @@ if __name__ == "__main__":
     user_ids = {
         'weibo': ['5825014417'],
         'instagram': ['39817910000'],
-        'twitter': ['1279429216015011841', '911494401087569920']
+        'twitter': ['1279429216015011841', '911494401087569920', '1363706229416022021']
     }
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
@@ -52,7 +55,11 @@ if __name__ == "__main__":
         acquirer = acquirers.Weibo(colymer, client, site_name)
     elif site_name == 'instagram':
         client = Instagram(headers=headers, proxies=proxies, cookies=cookies)
-        acquirer = acquirers.Instagram(colymer, client, site_name)
+        if len(args) > 1 and args[1] == 'story':
+            acquirer = acquirers.InstagramStory(
+                colymer, client, '{}_story'.format(site_name))
+        else:
+            acquirer = acquirers.Instagram(colymer, client, site_name)
     elif site_name == 'twitter':
         client = Twitter(headers=headers, proxies=proxies, cookies=cookies)
         acquirer = acquirers.Twitter(colymer, client, site_name)

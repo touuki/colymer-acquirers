@@ -45,7 +45,6 @@ class Twitter(Site):
         headers = {
             'Referer': 'https://twitter.com/',
             'content-type': 'application/json',
-            'authority': 'twitter.com',
             # authorization为 https://abs.twimg.com/responsive-web/client-web/main.79e382f5.js 中的固定值，可考虑从user主页中动态获取
             'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
             'x-twitter-active-user': 'yes',

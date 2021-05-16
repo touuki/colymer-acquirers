@@ -4,8 +4,9 @@ from urllib.parse import urlparse
 import time
 import posixpath
 
+
 class Instagram(Acquirer):
-    def __init__(self, colymer, instagram, collection, request_interval=30):
+    def __init__(self, colymer, instagram, collection, request_interval=15):
         super().__init__(colymer)
         self.instagram = instagram
         self.collection = collection
@@ -40,13 +41,13 @@ class Instagram(Acquirer):
                     'referer': 'https://www.instagram.com/',
                 }
             })
-    
+
     def get_chain_id(self, user_id):
         return 'instagram-user-{}-timeline'.format(user_id)
-    
+
     def acquire(self, cursor, min_id, user_id):
         print('owner_to_timeline_media: user_id:{} cursor:{}'.format(user_id, cursor))
-        
+
         result = {
             'top_id': None,
             'bottom_id': None,
@@ -72,7 +73,8 @@ class Instagram(Acquirer):
 
             if node['__typename'] == 'GraphSidecar':
                 for child_edge in node['edge_sidecar_to_children']['edges']:
-                    Instagram.append_attachment(attachments, child_edge['node'])
+                    Instagram.append_attachment(
+                        attachments, child_edge['node'])
             else:
                 Instagram.append_attachment(attachments, node)
 

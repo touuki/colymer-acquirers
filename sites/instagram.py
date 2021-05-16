@@ -28,6 +28,27 @@ class Instagram(Site):
         if not self.is_logined():
             raise Exception('Instagram login failed.')
 
+    def reels_media(self, user_id):
+        headers = {
+            'Referer': 'https://www.instagram.com/',
+            # x-ig-app-id为位于 https://www.instagram.com/service-worker-prod-es6.js 中的instagramWebDesktopFBAppId值
+            'x-ig-app-id': '936619743392459'
+        }
+        response = self.session.get('https://i.instagram.com/api/v1/feed/reels_media/', params={'reel_ids': user_id},
+                                    headers=headers, allow_redirects=False)
+        if response.status_code != 200:
+            if response.status_code == 302:
+                raise Exception('reels_media failed. {} {} {} {}'.format(
+                    response.status_code, response.reason, response.headers['Location'], response.text))
+            else:
+                raise Exception('reels_media failed. {} {} {}'.format(
+                    response.status_code, response.reason, response.text))
+        result = response.json()
+        if result['status'] != 'ok':
+            raise Exception('reels_media failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+        return result['reels_media'][0]
+
     def owner_to_timeline_media(self, user_id, first=12, after=None):
         variables = {
             'id': user_id,
