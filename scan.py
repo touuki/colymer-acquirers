@@ -4,22 +4,64 @@ import sys
 import acquirers
 import pickle
 import getopt
+import traceback
+import socket
+import smtplib
+from email.mime.text import MIMEText
 
+user_ids = {
+    'weibo': ['5825014417'],
+    'instagram': ['39817910000'],
+    'twitter': ['1279429216015011841', '911494401087569920', '1363706229416022021']
+}
+headers = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
+}
+proxies = {
+    'http': 'http://localhost:7070',
+    'https': 'http://localhost:7070',
+}
+colymer = Colymer('http://192.168.30.1:3000/api/')
+
+alert = {
+    'host': '',
+    'sender': '',
+    'password': '',
+    'receiver': ''
+}
+
+def send_error_mail(error):
+    smtpObj = smtplib.SMTP_SSL(alert['host'])
+    ip = smtpObj.sock.getsockname()[0]
+    message = MIMEText('Hostname:{}\nIp:{}\nException:\n{}'.format(
+        socket.gethostname(), ip, traceback.format_exc()))
+    message['Subject'] = 'Exception occurs on {}: [{}] {}'.format(ip, error.__class__.__name__, error)
+    message['From'] = 'Alert <{}>'.format(alert['sender'])
+    message['To'] = alert['receiver']
+    
+    smtpObj.login(alert['sender'], alert['password'])
+    smtpObj.sendmail(alert['sender'], [alert['receiver']], message.as_string())
 
 def usage(code=0):
     print("""Usage: python scan.py [OPTION]... SITE
     SITE should be one of [weibo|instagram|twitter]
     -h,--help:  show usage.
-    -i:         only load parameters and doesn't run scanning; useful for python -i""")
+    -i:         only load parameters and doesn't run scanning; useful for python -i
+    -a:         used for automatically run.
+                if login required, do not wait for input but raise an exception.
+                if an exception is raised, send an email for alarm.""")
     sys.exit(code)
 
 
 if __name__ == "__main__":
-    opts, args = getopt.getopt(sys.argv[1:], "hi", ['help'])
+    opts, args = getopt.getopt(sys.argv[1:], "hia", ['help'])
     inspect = False
+    auto = False
     for op, value in opts:
         if op == "-i":
             inspect = True
+        elif op == "-a":
+            auto = True
         elif op in ("-h", "--help"):
             usage()
 
@@ -28,19 +70,6 @@ if __name__ == "__main__":
         usage(1)
 
     site_name = args[0]
-    user_ids = {
-        'weibo': ['5825014417'],
-        'instagram': ['39817910000'],
-        'twitter': ['1279429216015011841', '911494401087569920', '1363706229416022021']
-    }
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
-    }
-    proxies = {
-        'http': 'http://localhost:7070',
-        'https': 'http://localhost:7070',
-    }
-    colymer = Colymer('http://192.168.30.1:3000/api/')
 
     cookie_file = os.path.join(os.path.dirname(
         __file__), 'cookies/{}.cookie'.format(site_name))
@@ -67,9 +96,15 @@ if __name__ == "__main__":
     if not inspect:
         try:
             if not client.is_logined():
-                client.login()
+                if auto:
+                    raise Exception('Login required')
+                else:
+                    client.login()
             for user_id in user_ids[site_name]:
                 acquirer.scan(user_id=user_id)
-
+        except Exception as e:
+            traceback.print_exc()
+            if auto:
+                send_error_mail(e)
         finally:
             client.save_cookies(cookie_file)

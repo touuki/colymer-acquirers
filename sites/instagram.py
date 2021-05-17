@@ -31,8 +31,9 @@ class Instagram(Site):
     def reels_media(self, user_id):
         headers = {
             'Referer': 'https://www.instagram.com/',
-            # x-ig-app-id为位于 https://www.instagram.com/service-worker-prod-es6.js 中的instagramWebDesktopFBAppId值
-            'x-ig-app-id': '936619743392459'
+            # x-ig-app-id为位于 https://www.instagram.com/service-worker-prod-es6.js 中的instagramWebDesktopFBAppId值，需要和User-Agent匹配
+            'x-ig-app-id': '936619743392459',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
         }
         response = self.session.get('https://i.instagram.com/api/v1/feed/reels_media/', params={'reel_ids': user_id},
                                     headers=headers, allow_redirects=False)
