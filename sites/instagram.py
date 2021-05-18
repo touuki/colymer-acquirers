@@ -48,7 +48,10 @@ class Instagram(Site):
         if result['status'] != 'ok':
             raise Exception('reels_media failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
-        return result['reels_media'][0]
+        if len(result['reels_media']):
+            return result['reels_media'][0]
+        else:
+            return None
 
     def owner_to_timeline_media(self, user_id, first=12, after=None):
         variables = {
