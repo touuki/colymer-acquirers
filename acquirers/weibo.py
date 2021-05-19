@@ -1,15 +1,15 @@
+import sites
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse
-import time
 import posixpath
 
+
 class Weibo(Acquirer):
-    def __init__(self, colymer, weibo, collection, request_interval=3):
+    def __init__(self, colymer: sites.Colymer, weibo: sites.Weibo, collection: str):
         super().__init__(colymer)
         self.weibo = weibo
         self.collection = collection
-        self.request_interval = request_interval
 
     def post_status(self, status, source):
         if source == 'm.weibo.cn':
@@ -68,15 +68,14 @@ class Weibo(Acquirer):
                 article['attachments'] = attachments
             if 'edit_count' in status:
                 article['version'] = status['edit_count']
-        
-            self.colymer.post_article(self.collection, article, overwrite=False)
+
+            self.colymer.post_article(
+                self.collection, article, overwrite=False)
 
     def get_chain_id(self, user_id):
         return 'weibo-user-{}-timeline'.format(user_id)
-    
-    def acquire(self, since_id, min_id, user_id):
-        print('getIndex_timeline: user_id:{} since_id:{}'.format(user_id, since_id))
 
+    def acquire(self, since_id, min_id, user_id):
         result = {
             'top_id': None,
             'bottom_id': None,
@@ -86,7 +85,7 @@ class Weibo(Acquirer):
         }
 
         data = self.weibo.getIndex_timeline(user_id, since_id=since_id)
-        
+
         if 'cardlistInfo' in data and 'since_id' in data['cardlistInfo']:
             result['bottom_cursor'] = str(data['cardlistInfo']['since_id'])
             result['has_next'] = True
@@ -105,15 +104,15 @@ class Weibo(Acquirer):
 
                 if result['top_id'] is None:
                     result['top_id'] = status['mid']
-                
+
                 result['bottom_id'] = status['mid']
 
             if 'retweeted_status' in status:
                 retweeted_status = status['retweeted_status']
                 if retweeted_status['user']:
                     if retweeted_status['pic_num'] > 9 or retweeted_status['isLongText']:
-                        time.sleep(self.request_interval)
-                        single_data = self.weibo.detail(retweeted_status['mid'])
+                        single_data = self.weibo.detail(
+                            retweeted_status['mid'])
                         retweeted_status = single_data['status']
 
                     self.post_status(retweeted_status, 'm.weibo.cn')
@@ -123,11 +122,9 @@ class Weibo(Acquirer):
                         status['mid'], status['bid'], retweeted_status['mid'], retweeted_status['text']))
 
             if status['pic_num'] > 9 or status['isLongText']:
-                time.sleep(self.request_interval)
                 single_data = self.weibo.detail(status['mid'])
                 status = single_data['status']
 
             self.post_status(status, 'm.weibo.cn')
 
-        time.sleep(self.request_interval)
         return result

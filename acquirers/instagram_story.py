@@ -1,18 +1,16 @@
 from datetime import datetime
 import posixpath
-import time
+import sites
 from urllib.parse import urlparse
 
 
 class InstagramStory:
-    def __init__(self, colymer, instagram, collection, request_interval=10):
+    def __init__(self, colymer: sites.Colymer, instagram: sites.Instagram, collection: str):
         self.colymer = colymer
         self.instagram = instagram
         self.collection = collection
-        self.request_interval = request_interval
 
     def scan(self, user_id):
-        print('reels_media: user_id:{}'.format(user_id))
         data = self.instagram.reels_media(user_id)
 
         if data is not None:
@@ -69,5 +67,3 @@ class InstagramStory:
                         'original_data': item
                     }
                 }, overwrite=False)
-
-        time.sleep(self.request_interval)

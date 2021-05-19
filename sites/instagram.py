@@ -28,6 +28,7 @@ class Instagram(Site):
         if not self.is_logined():
             raise Exception('Instagram login failed.')
 
+    @Site.request_wrapper
     def reels_media(self, user_id):
         headers = {
             'Referer': 'https://www.instagram.com/',
@@ -53,6 +54,7 @@ class Instagram(Site):
         else:
             return None
 
+    @Site.request_wrapper
     def owner_to_timeline_media(self, user_id, first=12, after=None):
         variables = {
             'id': user_id,

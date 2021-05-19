@@ -30,17 +30,20 @@ alert = {
     'receiver': ''
 }
 
-def send_error_mail(error):
+
+def send_error_mail(error: Exception):
     smtpObj = smtplib.SMTP_SSL(alert['host'])
     ip = smtpObj.sock.getsockname()[0]
     message = MIMEText('Hostname:{}\nIp:{}\nException:\n{}'.format(
         socket.gethostname(), ip, traceback.format_exc()))
-    message['Subject'] = 'Exception occurs on {}: [{}] {}'.format(ip, error.__class__.__name__, error)
+    message['Subject'] = 'Exception occurs on {}: [{}] {}'.format(
+        ip, error.__class__.__name__, error)
     message['From'] = 'Alert <{}>'.format(alert['sender'])
     message['To'] = alert['receiver']
-    
+
     smtpObj.login(alert['sender'], alert['password'])
     smtpObj.sendmail(alert['sender'], [alert['receiver']], message.as_string())
+
 
 def usage(code=0):
     print("""Usage: python scan.py [OPTION]... SITE
@@ -80,17 +83,19 @@ if __name__ == "__main__":
             cookies = pickle.load(f)
 
     if site_name == 'weibo':
-        client = Weibo(headers=headers, cookies=cookies)
+        client = Weibo(headers=headers, cookies=cookies, request_interval=3)
         acquirer = acquirers.Weibo(colymer, client, site_name)
     elif site_name == 'instagram':
-        client = Instagram(headers=headers, proxies=proxies, cookies=cookies)
+        client = Instagram(headers=headers, proxies=proxies,
+                           cookies=cookies, request_interval=15)
         if len(args) > 1 and args[1] == 'story':
             acquirer = acquirers.InstagramStory(
                 colymer, client, '{}_story'.format(site_name))
         else:
             acquirer = acquirers.Instagram(colymer, client, site_name)
     elif site_name == 'twitter':
-        client = Twitter(headers=headers, proxies=proxies, cookies=cookies)
+        client = Twitter(headers=headers, proxies=proxies,
+                         cookies=cookies, request_interval=15)
         acquirer = acquirers.Twitter(colymer, client, site_name)
 
     if not inspect:

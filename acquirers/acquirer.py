@@ -1,5 +1,8 @@
+import sites
+
+
 class Acquirer:
-    def __init__(self, colymer):
+    def __init__(self, colymer: sites.Colymer):
         self.colymer = colymer
 
     def scan(self, **kwargs):

@@ -1,16 +1,15 @@
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse
-import time
 import posixpath
+import sites
 
 
 class Instagram(Acquirer):
-    def __init__(self, colymer, instagram, collection, request_interval=15):
+    def __init__(self, colymer: sites.Colymer, instagram: sites.Instagram, collection: str):
         super().__init__(colymer)
         self.instagram = instagram
         self.collection = collection
-        self.request_interval = request_interval
 
     @staticmethod
     def append_attachment(attachments, child_node):
@@ -46,8 +45,6 @@ class Instagram(Acquirer):
         return 'instagram-user-{}-timeline'.format(user_id)
 
     def acquire(self, cursor, min_id, user_id):
-        print('owner_to_timeline_media: user_id:{} cursor:{}'.format(user_id, cursor))
-
         result = {
             'top_id': None,
             'bottom_id': None,
@@ -100,5 +97,4 @@ class Instagram(Acquirer):
 
             result['bottom_id'] = node['id']
 
-        time.sleep(self.request_interval)
         return result

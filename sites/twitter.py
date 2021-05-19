@@ -68,6 +68,7 @@ class Twitter(Site):
                     method_name, response.status_code, response.reason, response.text))
         return response.json()
 
+    @Site.request_wrapper
     def user_by_rest_id_without_results(self, user_id):
         """通过 https://twitter.com/i/user/:user_id 页面可发现该请求"""
         variables = {
@@ -86,6 +87,7 @@ class Twitter(Site):
         )
         return self._postprocess_response(response, 'user_by_rest_id_without_results')
 
+    @Site.request_wrapper
     def user_tweets(self, user_id, count=20, cursor=None):
         variables = {
             "userId": user_id,
@@ -113,6 +115,7 @@ class Twitter(Site):
         )
         return self._postprocess_response(response, 'user_tweets')
 
+    @Site.request_wrapper
     def user_tweets_and_replies(self, user_id, count=20, cursor=None):
         variables = {
             "userId": user_id,

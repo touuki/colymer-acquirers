@@ -1,16 +1,15 @@
+import sites
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse
-import time
 import posixpath
 
 
 class Twitter(Acquirer):
-    def __init__(self, colymer, twitter, collection, request_interval=15):
+    def __init__(self, colymer: sites.Colymer, twitter: sites.Twitter, collection: str):
         super().__init__(colymer)
         self.twitter = twitter
         self.collection = collection
-        self.request_interval = request_interval
         self.pin_ids = {}
 
     @staticmethod
@@ -118,8 +117,6 @@ class Twitter(Acquirer):
         return 'twitter-user-{}-tweets_and_replies'.format(user_id)
 
     def acquire(self, cursor, min_id, user_id):
-        print('user_tweets_and_replies: user_id:{} cursor:{}'.format(user_id, cursor))
-
         result = {
             'top_id': None,
             'bottom_id': None,
@@ -169,5 +166,4 @@ class Twitter(Acquirer):
             result['has_next'] = False
             result['bottom_cursor'] = None
 
-        time.sleep(self.request_interval)
         return result

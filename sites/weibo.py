@@ -186,6 +186,7 @@ class Weibo(Site):
                 'height': int(pid[26:29], 36)
             }
 
+    @Site.request_wrapper
     def getIndex_timeline(self, uid, since_id=None, page=None):
         """正常返回10条（不包括置顶及其他），如果有不可见则不包括在内
         这样存在问题为如果有连续10条以上不可见，则扫描会中断
@@ -220,6 +221,7 @@ class Weibo(Site):
 
         return result['data']
 
+    @Site.request_wrapper
     def statuses_mymblog(self, uid, page):
         """由于m.weibo.cn的接口更方便图像链接、快转等的获取，
         并且其时间戳问题已被官方修复，因此此方法不再维护。
@@ -248,6 +250,7 @@ class Weibo(Site):
 
         return result['data']
 
+    @Site.request_wrapper
     def detail(self, mid):
         #response = self.session.get('https://m.weibo.cn/status/{}'.format(mid))
         response = self.session.get('https://m.weibo.cn/detail/{}'.format(mid))
