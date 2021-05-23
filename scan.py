@@ -9,10 +9,19 @@ import socket
 import smtplib
 from email.mime.text import MIMEText
 
-user_ids = {
-    'weibo': ['5825014417'],
-    'instagram': ['39817910000'],
-    'twitter': ['1279429216015011841', '911494401087569920', '1363706229416022021']
+tasks = {
+    'weibo': [
+        {'user_id': '5825014417'},
+        {'user_id': '1162649274', 'q': '長濱ねる'}
+    ],
+    'instagram': [
+        {'user_id': '39817910000'}
+    ],
+    'twitter': [
+        {'user_id': '1279429216015011841'},
+        {'user_id': '911494401087569920'},
+        {'user_id': '1363706229416022021'}
+    ]
 }
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
@@ -83,8 +92,9 @@ if __name__ == "__main__":
             cookies = pickle.load(f)
 
     if site_name == 'weibo':
-        client = Weibo(headers=headers, cookies=cookies, request_interval=3)
-        acquirer = acquirers.Weibo(colymer, client, site_name)
+        client = Weibo(headers=headers, cookies=cookies, request_interval=2)
+        acquirer = acquirers.Weibo(
+            colymer, client, site_name, video_collection='{}_video'.format(site_name))
     elif site_name == 'instagram':
         client = Instagram(headers=headers, proxies=proxies,
                            cookies=cookies, request_interval=15)
@@ -105,8 +115,8 @@ if __name__ == "__main__":
                     raise Exception('Login required')
                 else:
                     client.login()
-            for user_id in user_ids[site_name]:
-                acquirer.scan(user_id=user_id)
+            for kwargs in tasks[site_name]:
+                acquirer.scan(**kwargs)
         except Exception as e:
             traceback.print_exc()
             if auto:

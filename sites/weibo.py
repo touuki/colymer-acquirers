@@ -156,36 +156,6 @@ class Weibo(Site):
         self.config = result['data']
         return self.config
 
-    @staticmethod
-    def pid2imgs(pid):
-        """weibo.com接口不易获取图像URL的产物，现在使用m.weibo.cn的接口
-        可以直接获取图像链接，就不再需要这个方法了。"""
-        typ = 'gif' if pid[21] == 'g' else 'jpg'
-
-        if pid[9] == 'w' or pid[9] == 'y' and len(pid) >= 32:
-            """微博采用hash算法将pid映射到wx1,wx2,wx3,wx4四个子域名
-            但是不知道是不是通用hash算法，位运算太麻烦了懒得写了
-            反正四个子域名都能用，先这样吧"""
-            s = "https://{}{}.sinaimg.cn/%s/{}.{}".format(
-                'ww' if pid[9] == 'w' else 'wx', 1, pid, typ)
-        else:
-            s = "https://ss{}.sinaimg.cn/%s/{}&690".format(
-                1+15 & int(pid[-2:], 16), pid)
-
-        data = {
-            'url': s % 'orj360',
-            'large': {'url': s % 'large'},
-            'webp': {'url': s % 'webp720'},
-            'normal': {'url': s % 'mw1024'},
-            'pid': pid,
-            'type': typ
-        }
-        if len(pid) >= 32 and pid[22] >= '1':
-            data['geo'] = {
-                'width': int(pid[23:26], 36),
-                'height': int(pid[26:29], 36)
-            }
-
     @Site.request_wrapper
     def getIndex_timeline(self, uid, since_id=None, page=None):
         """正常返回10条（不包括置顶及其他），如果有不可见则不包括在内
@@ -222,10 +192,38 @@ class Weibo(Site):
         return result['data']
 
     @Site.request_wrapper
+    def profile_searchblog(self, uid, page, q):
+        params = {
+            'uid': uid,
+            'page': page,
+            'feature': '0',
+            'q': q,
+        }
+        headers = {
+            'Referer': 'https://weibo.com/u/{}'.format(uid),
+            'x-requested-with': 'XMLHttpRequest'
+        }
+        xsrf_token = self.session.cookies.get('XSRF-TOKEN', domain='weibo.com')
+        if xsrf_token:
+            headers['x-xsrf-token'] = xsrf_token
+        response = self.session.get('https://weibo.com/ajax/profile/searchblog',
+                                    params=params, headers=headers, allow_redirects=False)
+        if response.status_code != 200:
+            raise Exception('profile_searchblog failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+        result = response.json()
+        if not result['ok']:
+            raise Exception('profile_searchblog failed. {} {} {}'.format(
+                response.status_code, response.reason, result))
+
+        return result['data']
+
+    @Site.request_wrapper
     def statuses_mymblog(self, uid, page):
-        """由于m.weibo.cn的接口更方便图像链接、快转等的获取，
-        并且其时间戳问题已被官方修复，因此此方法不再维护。
-        正常返回20条，已知在好友圈可见等情况下返回数量小于20"""
+        """正常返回20条，已知在好友圈可见等情况下返回数量小于20
+           5/23/2021记，rlgl新版weibo.com除了搜索外所有接口
+           获取不到2018年3月之前的内容，显示根据博主设置不可见
+           但是手机端和m.weibo.cn都可以看到，等官方修复了……"""
         params = {
             'uid': uid,
             'page': page,
@@ -251,6 +249,72 @@ class Weibo(Site):
         return result['data']
 
     @Site.request_wrapper
+    def statuses_show(self, bid):
+        """9图以上需通过此获取图像url"""
+        headers = {
+            'Referer': 'https://weibo.com/',
+            'x-requested-with': 'XMLHttpRequest'
+        }
+        xsrf_token = self.session.cookies.get('XSRF-TOKEN', domain='weibo.com')
+        if xsrf_token:
+            headers['x-xsrf-token'] = xsrf_token
+        response = self.session.get('https://weibo.com/ajax/statuses/show',
+                                    params={'id': bid}, headers=headers, allow_redirects=False)
+        if response.status_code != 200:
+            raise Exception('statuses_show failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+        result = response.json()
+        if not result['ok']:
+            raise Exception('statuses_show failed. {} {} {}'.format(
+                response.status_code, response.reason, result))
+        return result
+
+    @Site.request_wrapper
+    def statuses_longtext(self, bid):
+        """长微博需单独获取"""
+        headers = {
+            'Referer': 'https://weibo.com/',
+            'x-requested-with': 'XMLHttpRequest'
+        }
+        xsrf_token = self.session.cookies.get('XSRF-TOKEN', domain='weibo.com')
+        if xsrf_token:
+            headers['x-xsrf-token'] = xsrf_token
+        response = self.session.get('https://weibo.com/ajax/statuses/longtext',
+                                    params={'id': bid}, headers=headers, allow_redirects=False)
+        if response.status_code != 200:
+            raise Exception('statuses_longtext failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+        result = response.json()
+        if not result['ok']:
+            raise Exception('statuses_longtext failed. {} {} {}'.format(
+                response.status_code, response.reason, result))
+        return result['data']['longTextContent']
+
+    @Site.request_wrapper
+    def tv_component(self, oid):
+        headers = {
+            'Referer': 'https://weibo.com/tv/show/{}'.format(oid),
+            'x-requested-with': 'XMLHttpRequest'
+        }
+        xsrf_token = self.session.cookies.get('XSRF-TOKEN', domain='weibo.com')
+        if xsrf_token:
+            headers['x-xsrf-token'] = xsrf_token
+        response = self.session.post('https://weibo.com/tv/api/component', params={
+            'page': '/tv/show/{}'.format(oid)
+        }, data={
+            'data': json.dumps({"Component_Play_Playinfo": {"oid": oid}})
+        }, headers=headers, allow_redirects=False)
+        if response.status_code != 200:
+            raise Exception('statuses_mymblog failed. {} {} {}'.format(
+                response.status_code, response.reason, response.text))
+        result = response.json()
+        if result['code'] != '100000':
+            raise Exception('statuses_mymblog failed. {} {} {}'.format(
+                response.status_code, response.reason, result))
+
+        return result['data']['Component_Play_Playinfo']
+
+    @Site.request_wrapper
     def detail(self, mid):
         #response = self.session.get('https://m.weibo.cn/status/{}'.format(mid))
         response = self.session.get('https://m.weibo.cn/detail/{}'.format(mid))
@@ -261,6 +325,6 @@ class Weibo(Site):
         search = re.search(
             r'var \$render_data = \[([\s\S]*)\]\[0\] \|\| {};', response.text)
         if search:
-            return json.loads(search.group(1))
+            return json.loads(search.group(1))['status']
         else:
             return None
