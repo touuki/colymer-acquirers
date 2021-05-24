@@ -12,38 +12,6 @@ class Weibo(Acquirer):
         self.collection = collection
         self.video_collection = video_collection
 
-    def fix(self):
-        items = self.colymer.get_articles(self.collection, [{'$match':{'metadata.type': 'video'}}])
-        exists = self.colymer.get_articles(self.video_collection, [{'$project': {'id': 1}}])
-        exists_dict = {}
-        for e in exists:
-            exists_dict[e['id']] = True
-        for item in items:
-            if item['id'] == '4212058725801701':
-                continue
-            status = item['metadata']['original_data']
-
-            if status['page_info']['object_id'] not in exists_dict \
-                and not status['page_info']['object_id'].startswith('2016475001:')\
-                and not status['page_info']['object_id'].startswith('2018564001:')\
-                and not status['page_info']['object_id'].startswith('2003420:')\
-                and not status['page_info']['object_id'].startswith('1007002:')\
-                and not status['page_info']['object_id'].startswith('2004091003:'):
-                # 2016475001: Bilibili; 2018564001: Acfun; 2003420:小影微视频; 2004091003:土豆; 1007002:优酷
-                data = self.weibo.tv_component(status['page_info']['object_id'])
-                # B站等外部视频时为空
-                if data is not None and data['urls']:
-                    self.post_video_tv(data, status['page_info'])
-                elif item['metadata']['source'] == 'm.weibo.cn':
-                    status = self.weibo.detail(status['mid'])
-                    if status is not None:
-                        self.post_video_m(status)
-                    else:
-                        print('mid:{} author:{} status is None'.format(item['id'], item['author']))
-                else:
-                    self.post_video(self.weibo.statuses_show(status['mblogid']))
-                
-
     def post_video_m(self, status):
         page_info = status['page_info']
         if 'mp4_720p_mp4' in page_info['urls']:
@@ -156,7 +124,7 @@ class Weibo(Acquirer):
 
         self.colymer.post_article(
             self.video_collection, article, overwrite=True)
-    
+
     def post_video(self, status):
         page_info = status['page_info']
         media_info = page_info['media_info']
@@ -172,9 +140,6 @@ class Weibo(Acquirer):
             resolution = '360P'
             directly_transfer = media_info['duration'] < 9600
             url_str = media_info['mp4_sd_url']
-        else:
-            print('video {} no mp4 url'.format(page_info['object_id']))
-            return
 
         url = urlparse(url_str)
 
@@ -212,7 +177,6 @@ class Weibo(Acquirer):
 
         self.colymer.post_article(
             self.video_collection, article, overwrite=True)
-
 
     @staticmethod
     def append_pics(attachments: list, pic):
@@ -275,22 +239,29 @@ class Weibo(Acquirer):
 
             if 'page_info' in status and 'object_type' in status['page_info']:
                 metadata['type'] = status['page_info']['object_type']
-                if status['page_info']['object_type'] == 'video' and 'media_info' in status['page_info']:
-                    if not self.colymer.get_articles(self.video_collection, [
-                        {'$match': {'id': status['page_info']['object_id']}},
-                        {'$project': {'id': 1}}
-                    ]):
-                        data = self.weibo.tv_component(status['page_info']['object_id'])
-                        # B站等外部视频时为空
-                        if data is not None and data['urls']:
-                            self.post_video_tv(data, status['page_info'])
-                        else:
-                            self.post_video(status)
+                if status['page_info']['object_type'] == 'video':
+                    oid = status['page_info']['object_id']
+                    oid_type = oid.split(':')[0]
+                    if oid_type in ['1034', '2017607']:
+                        if not self.colymer.get_articles(self.video_collection, [
+                            {'$match': {'id': oid}},
+                            {'$project': {'id': 1}}
+                        ]):
+                            data = self.weibo.tv_component(oid)
 
-                elif status['page_info']['type'] == 'article':
+                            if data['urls']:
+                                self.post_video_tv(data, status['page_info'])
+                            else:
+                                self.post_video(status)
+                    elif not oid_type in ['2016475001', '2018564001', '2003420', '1007002', '2004091003']:
+                        # 2016475001: Bilibili; 2018564001: Acfun; 2003420:小影微视频; 2004091003:土豆; 1007002:优酷
+                        print('Unknown video oid_type:{} mid:{} oid:{}'.format(
+                            oid_type, status['mid'], oid))
+
+                elif status['page_info']['object_type'] == 'article':
                     # TODO 放到新的collection中
                     pass
-            
+
             if 'retweeted_status' in status:
                 metadata['type'] = 'retweet'
                 metadata['retweeted_status_id'] = status['retweeted_status']['mid']
@@ -321,7 +292,7 @@ class Weibo(Acquirer):
                 'source': source,
                 'type': 'text'
             }
-            
+
             attachments = []
             if 'pics' in status:
                 metadata['type'] = 'picture'
@@ -345,16 +316,24 @@ class Weibo(Acquirer):
             if 'page_info' in status:
                 metadata['type'] = status['page_info']['type']
                 if status['page_info']['type'] == 'video':
-                    if not self.colymer.get_articles(self.video_collection, [
-                        {'$match': {'id': status['page_info']['object_id']}},
-                        {'$project': {'id': 1}}
-                    ]):
-                        data = self.weibo.tv_component(status['page_info']['object_id'])
-                        # B站等外部视频时为空
-                        if data is not None and data['urls']:
-                            self.post_video_tv(data, status['page_info'])
-                        else:
-                            self.post_video_m(status)
+                    oid = status['page_info']['object_id']
+                    oid_type = oid.split(':')[0]
+                    if oid_type in ['1034', '2017607']:
+                        if not self.colymer.get_articles(self.video_collection, [
+                            {'$match': {'id': oid}},
+                            {'$project': {'id': 1}}
+                        ]):
+                            data = self.weibo.tv_component(oid)
+
+                            if data is not None and data['urls']:
+                                self.post_video_tv(data, status['page_info'])
+                            else:
+                                self.post_video_m(status)
+                    elif not oid_type in ['2016475001', '2018564001', '2003420', '1007002', '2004091003']:
+                        # 2016475001: Bilibili; 2018564001: Acfun; 2003420:小影微视频; 2004091003:土豆; 1007002:优酷
+                        print('Unknown video oid_type:{} mid:{} oid:{}'.format(
+                            oid_type, status['mid'], oid))
+
                 elif status['page_info']['type'] == 'article':
                     # TODO 放到新的collection中 一例：since_id=4559721145047710
                     pass
