@@ -6,177 +6,130 @@ import posixpath
 
 
 class Weibo(Acquirer):
-    def __init__(self, colymer: sites.Colymer, weibo: sites.Weibo, collection: str, video_collection: str):
+    def __init__(self, colymer: sites.Colymer, weibo: sites.Weibo, collection: str):
         super().__init__(colymer)
         self.weibo = weibo
         self.collection = collection
-        self.video_collection = video_collection
 
-    def post_video_m(self, status):
-        page_info = status['page_info']
+    @staticmethod
+    def append_video_m(attachments: list, page_info):
+        if page_info['urls'] is None:
+            return
+        
         if 'mp4_720p_mp4' in page_info['urls']:
-            resolution = '720P'
+            quality = '720P'
             directly_transfer = page_info['media_info']['duration'] < 2400
             url_str = page_info['urls']['mp4_720p_mp4']
         elif 'mp4_hd_mp4' in page_info['urls']:
-            resolution = '480P'
+            quality = '480P'
             directly_transfer = page_info['media_info']['duration'] < 4800
             url_str = page_info['urls']['mp4_hd_mp4']
         elif 'mp4_ld_mp4' in page_info['urls']:
-            resolution = '360P'
+            quality = '360P'
             directly_transfer = page_info['media_info']['duration'] < 9600
             url_str = page_info['urls']['mp4_ld_mp4']
 
         url = urlparse(url_str)
-
-        article = {
-            'author': {
-                'id': str(status['user']['id']),
-                'name': status['user']['screen_name']
-            },
-            'content_type': 'text/plain',
-            'content': page_info['content2'],
-            'title': page_info['title'],
+        attachments.append({
             'id': page_info['object_id'],
-            'original_url': 'https://m.weibo.cn/detail/{}'.format(status['bid']),
-            'time': datetime.strptime(status['created_at'], '%a %b %d %H:%M:%S %z %Y').isoformat(),
+            'filename': posixpath.basename(url.path),
+            'content_type': 'video/mp4',
+            'original_url': url_str,
             'metadata': {
-                'original_data': status,
-                'source': 'm.weibo.cn'
+                'duration_millis': int(page_info['media_info']['duration'] * 1000),
+                'quality': quality
             },
-            'attachments': [{
-                'id': str(status['fid']) if 'fid' in status else '',
-                'filename': posixpath.basename(url.path),
-                'content_type': 'video/mp4',
-                'original_url': url_str,
-                'metadata': {
-                    'duration_millis': int(page_info['media_info']['duration'] * 1000),
-                    'resolution': resolution
-                },
-                'persist_info': {
-                    'directly_transfer': directly_transfer,
-                    'path': url.path,
-                    'referer': 'https://m.weibo.cn/detail/{}'.format(status['bid']),
-                }
-            }]
-        }
+            'persist_info': {
+                'directly_transfer': directly_transfer,
+                'path': url.path,
+                'referer': 'https://m.weibo.cn/',
+            }
+        })
 
-        self.colymer.post_article(
-            self.video_collection, article, overwrite=True)
-
-    def post_video_tv(self, data, page_info):
-        if '高清 1080P+' in data['urls']:
-            resolution = '1080P+'
-            directly_transfer = data['duration_time'] < 1200
-            url_str = data['urls']['高清 1080P+']
-        elif '高清 1080P' in data['urls']:
-            resolution = '1080P'
-            directly_transfer = data['duration_time'] < 1200
-            url_str = data['urls']['高清 1080P']
-        elif '高清 720P' in data['urls']:
-            resolution = '720P'
-            directly_transfer = data['duration_time'] < 2400
-            url_str = data['urls']['高清 720P']
-        elif '标清 480P' in data['urls']:
-            resolution = '480P'
-            directly_transfer = data['duration_time'] < 4800
-            url_str = data['urls']['标清 480P']
-        elif '流畅 360P' in data['urls']:
-            resolution = '360P'
-            directly_transfer = data['duration_time'] < 9600
-            url_str = data['urls']['流畅 360P']
-
-        if url_str.startswith('//'):
-            url_str = 'https:{}'.format(url_str)
-        url = urlparse(url_str)
-
-        article = {
-            'author': {
-                'id': str(data['user']['id']) if data['user']['id'] is not None else '',
-                'name': data['author'] if data['author'] is not None else ''
-            },
-            'content_type': 'text/html',
-            'content': data['text'],
-            'title': data['title'] if data['title'] is not None else '',
-            'id': page_info['object_id'],
-            'original_url': 'https://weibo.com/tv/show/{}'.format(page_info['object_id']),
-            'time': datetime.fromtimestamp(page_info['media_info']['video_publish_time']).isoformat() + 'Z',
-            'metadata': {
-                'original_data': data,
-                'source': 'weibo.com/tv'
-            },
-            'attachments': [{
-                'id': str(data['media_id']),
-                'filename': posixpath.basename(url.path),
-                'content_type': 'video/mp4',
-                'original_url': url_str,
-                'metadata': {
-                    'duration_millis': int(data['duration_time'] * 1000),
-                    'resolution': resolution
-                },
-                'persist_info': {
-                    'directly_transfer': directly_transfer,
-                    'path': url.path,
-                    'referer': 'https://weibo.com/tv/show/{}'.format(page_info['object_id']),
-                }
-            }]
-        }
-
-        self.colymer.post_article(
-            self.video_collection, article, overwrite=True)
-
-    def post_video(self, status):
-        page_info = status['page_info']
+    @staticmethod
+    def append_video(attachments: list, page_info):
+        if 'media_info' not in page_info:
+            return
         media_info = page_info['media_info']
-        if media_info['mp4_720p_mp4']:
-            resolution = '720P'
-            directly_transfer = media_info['duration'] < 2400
-            url_str = media_info['mp4_720p_mp4']
-        elif media_info['mp4_hd_url']:
-            resolution = '480P'
-            directly_transfer = media_info['duration'] < 4800
-            url_str = media_info['mp4_hd_url']
-        elif media_info['mp4_sd_url']:
-            resolution = '360P'
-            directly_transfer = media_info['duration'] < 9600
-            url_str = media_info['mp4_sd_url']
+        quality_index = 0
+        if 'playback_list' not in media_info:
+            return
+        
+        for playback in media_info['playback_list']:
+            if playback['meta']['type'] == 1 and playback['meta']['quality_index'] > quality_index:
+                quality_index = playback['meta']['quality_index']
+                play_info = playback['play_info']
 
-        url = urlparse(url_str)
+        if quality_index:
+            url = urlparse(play_info['url'])
+            attachments.append({
+                'id': page_info['object_id'],
+                'filename': posixpath.basename(url.path),
+                'content_type': play_info['mime'],
+                'original_url': play_info['url'],
+                'metadata': {
+                    'duration_millis': int(play_info['duration'] * 1000),
+                    'width': play_info['width'],
+                    'height': play_info['height'],
+                    'size': play_info['size'],
+                    'bitrate': play_info['bitrate']
+                },
+                'persist_info': {
+                    # 300MB
+                    'directly_transfer': play_info['size'] < 314572800,
+                    'path': url.path,
+                    'referer': 'https://weibo.com/',
+                }
+            })
+        else:
+            if media_info['mp4_720p_mp4']:
+                quality = '720P'
+                directly_transfer = media_info['duration'] < 2400
+                url_str = media_info['mp4_720p_mp4']
+            elif media_info['mp4_hd_url']:
+                quality = '480P'
+                directly_transfer = media_info['duration'] < 4800
+                url_str = media_info['mp4_hd_url']
+            elif media_info['mp4_sd_url']:
+                quality = '360P'
+                directly_transfer = media_info['duration'] < 9600
+                url_str = media_info['mp4_sd_url']
 
-        article = {
-            'author': {
-                'id': page_info['authorid'],
-                'name': media_info['author_name']
-            },
-            'content_type': 'text/plain',
-            'content': page_info['content2'],
-            'title': media_info['name'],
-            'id': page_info['object_id'],
-            'original_url': 'https://weibo.com/{}/{}'.format(status['user']['id'], status['mblogid']),
-            'time': datetime.fromtimestamp(media_info['video_publish_time']).isoformat() + 'Z',
-            'metadata': {
-                'original_data': status,
-                'source': 'weibo.com/detail'
-            },
-            'attachments': [{
-                'id': str(media_info['media_id']),
+            url = urlparse(url_str)
+            attachments.append({
+                'id': page_info['object_id'],
                 'filename': posixpath.basename(url.path),
                 'content_type': 'video/mp4',
                 'original_url': url_str,
                 'metadata': {
                     'duration_millis': int(media_info['duration'] * 1000),
-                    'resolution': resolution
+                    'quality': quality
                 },
                 'persist_info': {
                     'directly_transfer': directly_transfer,
                     'path': url.path,
-                    'referer': 'https://weibo.com/{}/{}'.format(status['user']['id'], status['mblogid'])
+                    'referer': 'https://weibo.com/',
                 }
-            }]
-        }
+            })
 
-        self.colymer.post_article(
-            self.video_collection, article, overwrite=True)
+    @staticmethod
+    def append_pics_m(attachments: list, pic):
+        url = urlparse(pic['large']['url'])
+        attachments.append({
+            'id': pic['pid'],
+            'filename': posixpath.basename(url.path),
+            'content_type': 'image/gif' if url.path[-3:] == 'gif' else 'image/jpeg',
+            'original_url': pic['large']['url'],
+            'metadata': {
+                'width': int(pic['geo']['width']),
+                'height': int(pic['geo']['height'])
+            },
+            'persist_info': {
+                'directly_transfer': True,
+                'path': url.path,
+                'referer': 'https://m.weibo.cn/',
+            }
+        })
 
     @staticmethod
     def append_pics(attachments: list, pic):
@@ -229,34 +182,20 @@ class Weibo(Acquirer):
                 metadata['type'] = 'picture'
                 if 'pic_ids' in status:
                     for pid in status['pic_ids']:
-                        Weibo.append_pics(attachments, status['pic_infos'][pid])
+                        Weibo.append_pics(
+                            attachments, status['pic_infos'][pid])
                 else:
                     # 有page_info的情况下单个图片可能会缩成查看图片
                     for struct in status['url_struct']:
                         if struct['url_title'] == '查看图片':
                             for pid in struct['pic_ids']:
-                                Weibo.append_pics(attachments, struct['pic_infos'][pid])
+                                Weibo.append_pics(
+                                    attachments, struct['pic_infos'][pid])
 
             if 'page_info' in status and 'object_type' in status['page_info']:
                 metadata['type'] = status['page_info']['object_type']
                 if status['page_info']['object_type'] == 'video':
-                    oid = status['page_info']['object_id']
-                    oid_type = oid.split(':')[0]
-                    if oid_type in ['1034', '2017607']:
-                        if not self.colymer.get_articles(self.video_collection, [
-                            {'$match': {'id': oid}},
-                            {'$project': {'id': 1}}
-                        ]):
-                            data = self.weibo.tv_component(oid)
-
-                            if data['urls']:
-                                self.post_video_tv(data, status['page_info'])
-                            else:
-                                self.post_video(status)
-                    elif not oid_type in ['2016475001', '2018564001', '2003420', '1007002', '2004091003']:
-                        # 2016475001: Bilibili; 2018564001: Acfun; 2003420:小影微视频; 2004091003:土豆; 1007002:优酷
-                        print('Unknown video oid_type:{} mid:{} oid:{}'.format(
-                            oid_type, status['mid'], oid))
+                    Weibo.append_video(attachments, status['page_info'])
 
                 elif status['page_info']['object_type'] == 'article':
                     # TODO 放到新的collection中
@@ -285,7 +224,7 @@ class Weibo(Acquirer):
                 article['version'] = status['edit_count']
 
             self.colymer.post_article(
-                self.collection, article, overwrite=False)
+                self.collection, article, overwrite=True)
         elif source == 'm.weibo.cn':
             metadata = {
                 'original_data': status,
@@ -297,42 +236,12 @@ class Weibo(Acquirer):
             if 'pics' in status:
                 metadata['type'] = 'picture'
                 for pic in status['pics']:
-                    url = urlparse(pic['large']['url'])
-                    attachments.append({
-                        'id': pic['pid'],
-                        'filename': posixpath.basename(url.path),
-                        'content_type': 'image/gif' if url.path[-3:] == 'gif' else 'image/jpeg',
-                        'original_url': pic['large']['url'],
-                        'metadata': {
-                            'width': int(pic['geo']['width']),
-                            'height': int(pic['geo']['height'])
-                        },
-                        'persist_info': {
-                            'directly_transfer': True,
-                            'path': url.path,
-                            'referer': 'https://m.weibo.cn/u/{}'.format(status['user']['id']),
-                        }
-                    })
+                    Weibo.append_pics_m(attachments, pic)
+
             if 'page_info' in status:
                 metadata['type'] = status['page_info']['type']
                 if status['page_info']['type'] == 'video':
-                    oid = status['page_info']['object_id']
-                    oid_type = oid.split(':')[0]
-                    if oid_type in ['1034', '2017607']:
-                        if not self.colymer.get_articles(self.video_collection, [
-                            {'$match': {'id': oid}},
-                            {'$project': {'id': 1}}
-                        ]):
-                            data = self.weibo.tv_component(oid)
-
-                            if data is not None and data['urls']:
-                                self.post_video_tv(data, status['page_info'])
-                            else:
-                                self.post_video_m(status)
-                    elif not oid_type in ['2016475001', '2018564001', '2003420', '1007002', '2004091003']:
-                        # 2016475001: Bilibili; 2018564001: Acfun; 2003420:小影微视频; 2004091003:土豆; 1007002:优酷
-                        print('Unknown video oid_type:{} mid:{} oid:{}'.format(
-                            oid_type, status['mid'], oid))
+                    Weibo.append_video_m(attachments, status['page_info'])
 
                 elif status['page_info']['type'] == 'article':
                     # TODO 放到新的collection中 一例：since_id=4559721145047710
@@ -361,7 +270,7 @@ class Weibo(Acquirer):
                 article['version'] = status['edit_count']
 
             self.colymer.post_article(
-                self.collection, article, overwrite=False)
+                self.collection, article, overwrite=True)
 
     def get_chain_id(self, user_id, q=None):
         return 'weibo-user-{}-timeline'.format(user_id) if q is None else 'weibo-user-{}-searchblog-{}'.format(user_id, q)
@@ -403,6 +312,11 @@ class Weibo(Acquirer):
 
             if 'retweeted_status' in status:
                 retweeted_status = status['retweeted_status']
+                #新版微博会把转发的page_info移出来，真坑爹
+                if 'page_info' in status:
+                    retweeted_status['page_info'] = status['page_info']
+                    del status['page_info']
+
                 if retweeted_status['user']:
                     self.post_status(retweeted_status, 'weibo.com')
                 else:

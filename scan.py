@@ -93,8 +93,7 @@ if __name__ == "__main__":
 
     if site_name == 'weibo':
         client = Weibo(headers=headers, cookies=cookies, request_interval=2)
-        acquirer = acquirers.Weibo(
-            colymer, client, site_name, video_collection='{}_video'.format(site_name))
+        acquirer = acquirers.Weibo(colymer, client, site_name)
     elif site_name == 'instagram':
         client = Instagram(headers=headers, proxies=proxies,
                            cookies=cookies, request_interval=15)
