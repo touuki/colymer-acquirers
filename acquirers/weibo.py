@@ -224,7 +224,7 @@ class Weibo(Acquirer):
                 article['version'] = status['edit_count']
 
             self.colymer.post_article(
-                self.collection, article, overwrite=True)
+                self.collection, article, overwrite=False)
         elif source == 'm.weibo.cn':
             metadata = {
                 'original_data': status,
@@ -270,7 +270,7 @@ class Weibo(Acquirer):
                 article['version'] = status['edit_count']
 
             self.colymer.post_article(
-                self.collection, article, overwrite=True)
+                self.collection, article, overwrite=False)
 
     def get_chain_id(self, user_id, q=None):
         return 'weibo-user-{}-timeline'.format(user_id) if q is None else 'weibo-user-{}-searchblog-{}'.format(user_id, q)
