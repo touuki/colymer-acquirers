@@ -9,7 +9,7 @@ class Instagram(Site):
 
     def is_logined(self):
         response = self.session.get('https://www.instagram.com/')
-        return "window.__additionalDataLoaded('feed" in response.text
+        return "username" in response.text
 
     def login(self, sessionid=None):
         if sessionid is None:
