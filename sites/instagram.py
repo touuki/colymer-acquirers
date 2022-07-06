@@ -8,8 +8,8 @@ class Instagram(Site):
     # story url: Login required GET https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={user_id}
 
     def is_logined(self):
-        response = self.session.get('https://www.instagram.com/')
-        return "username" in response.text
+        response = self.session.get('https://www.instagram.com/', allow_redirects=False)
+        return response.status_code == 200
 
     def login(self, sessionid=None):
         if sessionid is None:
