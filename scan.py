@@ -9,6 +9,17 @@ import socket
 import smtplib
 from email.mime.text import MIMEText
 
+if False:
+    import logging
+    import http.client
+    http.client.HTTPConnection.debuglevel = 1
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
+
 tasks = {
     'weibo': [
         {'user_id': '5825014417'},
@@ -19,7 +30,7 @@ tasks = {
     ],
     'twitter': [
         {'user_id': '1279429216015011841'},
-        {'user_id': '911494401087569920'},
+        #{'user_id': '911494401087569920'},
         {'user_id': '1363706229416022021'}
     ]
 }
@@ -27,10 +38,10 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
 }
 proxies = {
-    'http': 'http://localhost:7070',
-    'https': 'http://localhost:7070',
+    'http': 'http://localhost:8080',
+    'https': 'http://localhost:8080',
 }
-colymer = Colymer('http://192.168.30.1:3000/api/')
+colymer = Colymer('http://localhost:3000/api/')
 
 alert = {
     'host': '',
