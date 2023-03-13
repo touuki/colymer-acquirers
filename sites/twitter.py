@@ -25,7 +25,7 @@ class Twitter(Site):
         else:
             response = self.session.get('https://twitter.com/')
             searchObj = re.search(
-                r'document\.cookie = decodeURIComponent\("gt=(\d+); Max-Age=(\d+); Domain=\.twitter\.com; Path=/; Secure"\)',
+                r'document\.cookie="gt=(\d+); Max-Age=(\d+); Domain=\.twitter\.com; Path=/; Secure"',
                 response.text
             )
             if searchObj:
