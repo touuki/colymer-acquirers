@@ -52,13 +52,11 @@ class Weibo(Acquirer):
             return
         media_info = page_info['media_info']
         quality_index = 0
-        if 'playback_list' not in media_info:
-            return
-        
-        for playback in media_info['playback_list']:
-            if playback['meta']['type'] == 1 and playback['meta']['quality_index'] > quality_index:
-                quality_index = playback['meta']['quality_index']
-                play_info = playback['play_info']
+        if 'playback_list' in media_info:
+            for playback in media_info['playback_list']:
+                if playback['meta']['type'] == 1 and playback['meta']['quality_index'] > quality_index:
+                    quality_index = playback['meta']['quality_index']
+                    play_info = playback['play_info']
 
         if quality_index:
             url = urlparse(play_info['url'])
@@ -165,8 +163,9 @@ class Weibo(Acquirer):
                 }
                 status = self.weibo.statuses_show(status['mblogid'])
 
-            if status['pic_num'] and ('pic_infos' not in status or len(status['pic_infos']) < status['pic_num']):
-                status = self.weibo.statuses_show(status['mblogid'])
+            # 20230604: 似乎9图以上可以全部返回了，不再需要以下代码
+            #if status['pic_num'] and ('pic_infos' not in status or len(status['pic_infos']) < status['pic_num']):
+            #    status = self.weibo.statuses_show(status['mblogid'])
 
             # weibo.com的isLongText在图片多于9个时也会返回true，无法判断长微博
             if status['isLongText'] and status['textLength'] > 280:
@@ -178,7 +177,7 @@ class Weibo(Acquirer):
             metadata['original_data'] = status
 
             attachments = []
-            if status['pic_num']:
+            if 'pic_infos' in status:
                 metadata['type'] = 'picture'
                 if 'pic_ids' in status:
                     for pid in status['pic_ids']:
@@ -191,6 +190,14 @@ class Weibo(Acquirer):
                             for pid in struct['pic_ids']:
                                 Weibo.append_pics(
                                     attachments, struct['pic_infos'][pid])
+
+            if 'mix_media_info' in status:
+                metadata['type'] = 'mix'
+                for item in status['mix_media_info']['items']:
+                    if item['type'] == 'video':
+                        Weibo.append_video(attachments, item['data'])
+                    elif item['type'] == 'pic':
+                        Weibo.append_pics(attachments, item['data'])
 
             if 'page_info' in status and 'object_type' in status['page_info']:
                 metadata['type'] = status['page_info']['object_type']
