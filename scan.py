@@ -1,5 +1,4 @@
-from sites import *
-from acquirers import *
+from colymer import *
 import os
 import sys
 import getopt
