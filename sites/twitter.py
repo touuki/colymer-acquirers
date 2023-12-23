@@ -1,11 +1,10 @@
 from .site import Site
 import json
-import http.cookiejar
 import time
 import re
 
 
-class Twitter(Site):
+class TwitterSite(Site):
     def __init__(self, **kw):
         super().__init__(**kw)
         self._get_guest_token()

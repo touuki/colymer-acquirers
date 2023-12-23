@@ -1,6 +1,4 @@
-from .colymer import Colymer
-from .instagram import Instagram
-from .weibo import Weibo
-from .twitter import Twitter
-
-__all__ = ['Colymer', 'Instagram', 'Weibo', 'Twitter']
+from .colymer import ColymerSite
+from .instagram import InstagramSite
+from .weibo import WeiboSite
+from .twitter import TwitterSite

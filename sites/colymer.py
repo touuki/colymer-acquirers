@@ -3,7 +3,7 @@ import json
 import urllib.parse
 
 
-class Colymer(Site):
+class ColymerSite(Site):
     def __init__(self, api_prefix, **kw):
         super().__init__(**kw)
         self.api_prefix = api_prefix

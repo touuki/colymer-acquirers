@@ -1,20 +1,29 @@
+import os
 import time
 import requests
 import pickle
+from datetime import datetime
 from functools import wraps
 
 
 class Site:
-    def __init__(self, headers=None, proxies=None, cookies=None, request_interval=0):
+    def __init__(self, headers=None, proxies=None, cookie_path=None, request_interval: float = 0):
         self.session = requests.Session()
         if proxies is not None:
             self.session.proxies.update(proxies)
         if headers is not None:
             self.session.headers.update(headers)
-        if cookies is not None:
-            self.session.cookies.update(cookies)
+
+        self.cookie_path = "{}.cookie".format(self.__class__.__name__) if cookie_path is None else cookie_path
+
+        if os.path.exists(self.cookie_path):
+            self.load_cookies(self.cookie_path)
+
         self.request_interval = request_interval
         self.request_last_timestamp = 0
+
+    def close(self):
+        self.save_cookies(self.cookie_path)
 
     @staticmethod
     def request_wrapper(fn):
@@ -25,7 +34,7 @@ class Site:
             if should_sleep_time > 0:
                 time.sleep(should_sleep_time)
             self.request_last_timestamp = time.time()
-            print('{}: args:{} kwargs:{}'.format(fn.__name__, args, kwargs))
+            print('[{} request] {}: args:{} kwargs:{}'.format(datetime.now().isoformat(), fn.__name__, args, kwargs))
             return fn(self, *args, **kwargs)
         return wrapper
 

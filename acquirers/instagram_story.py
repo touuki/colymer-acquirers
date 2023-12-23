@@ -1,11 +1,12 @@
 from datetime import datetime
 import posixpath
-import sites
+from sites.colymer import ColymerSite
+from sites.instagram import InstagramSite
 from urllib.parse import urlparse
 
 
-class InstagramStory:
-    def __init__(self, colymer: sites.Colymer, instagram: sites.Instagram, collection: str):
+class InstagramStoryAcquirer:
+    def __init__(self, colymer: ColymerSite, instagram: InstagramSite, collection: str):
         self.colymer = colymer
         self.instagram = instagram
         self.collection = collection

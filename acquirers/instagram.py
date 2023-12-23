@@ -1,12 +1,13 @@
+from sites.colymer import ColymerSite
+from sites.instagram import InstagramSite
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse
 import posixpath
-import sites
 
 
-class Instagram(Acquirer):
-    def __init__(self, colymer: sites.Colymer, instagram: sites.Instagram, collection: str):
+class InstagramAcquirer(Acquirer):
+    def __init__(self, colymer: ColymerSite, instagram: InstagramSite, collection: str):
         super().__init__(colymer)
         self.instagram = instagram
         self.collection = collection
@@ -70,10 +71,9 @@ class Instagram(Acquirer):
 
             if node['__typename'] == 'GraphSidecar':
                 for child_edge in node['edge_sidecar_to_children']['edges']:
-                    Instagram.append_attachment(
-                        attachments, child_edge['node'])
+                    self.append_attachment(attachments, child_edge['node'])
             else:
-                Instagram.append_attachment(attachments, node)
+                self.append_attachment(attachments, node)
 
             self.colymer.post_article(self.collection, {
                 'author': {

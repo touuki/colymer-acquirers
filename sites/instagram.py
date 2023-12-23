@@ -4,7 +4,7 @@ import json
 import time
 
 
-class Instagram(Site):
+class InstagramSite(Site):
     # story url: Login required GET https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={user_id}
 
     def is_logined(self):

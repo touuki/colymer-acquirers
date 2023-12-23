@@ -4,7 +4,7 @@ import re
 import json
 
 
-class Weibo(Site):
+class WeiboSite(Site):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.update_config()

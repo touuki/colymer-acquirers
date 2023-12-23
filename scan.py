@@ -1,8 +1,7 @@
 from sites import *
+from acquirers import *
 import os
 import sys
-import acquirers
-import pickle
 import getopt
 import traceback
 import socket
@@ -35,13 +34,13 @@ tasks = {
     ]
 }
 headers = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
 }
 proxies = {
     'http': 'http://localhost:8080',
     'https': 'http://localhost:8080',
 }
-colymer = Colymer('http://localhost:3000/api/')
+colymer = ColymerSite('http://localhost:3000/api/')
 
 alert = {
     'host': '',
@@ -88,35 +87,26 @@ if __name__ == "__main__":
         elif op in ("-h", "--help"):
             usage()
 
-    if len(args) == 0 or args[0] not in ['weibo', 'instagram', 'twitter']:
+    if len(args) == 0:
         print('Invalid args.')
         usage(1)
 
     site_name = args[0]
 
-    cookie_file = os.path.join(os.path.dirname(
-        __file__), 'cookies/{}.cookie'.format(site_name))
-
-    cookies = None
-    if os.path.exists(cookie_file):
-        with open(cookie_file, 'rb') as f:
-            cookies = pickle.load(f)
+    cookie_path = os.path.join(os.path.dirname(__file__), 'cookies/{}.cookie'.format(site_name))
 
     if site_name == 'weibo':
-        client = Weibo(headers=headers, cookies=cookies, request_interval=2)
-        acquirer = acquirers.Weibo(colymer, client, site_name)
+        client = WeiboSite(headers=headers, cookie_path=cookie_path, request_interval=2)
+        acquirer = WeiboAcquirer(colymer, client, site_name)
     elif site_name == 'instagram':
-        client = Instagram(headers=headers, proxies=proxies,
-                           cookies=cookies, request_interval=15)
+        client = InstagramSite(headers=headers, proxies=proxies, cookie_path=cookie_path, request_interval=15)
         if len(args) > 1 and args[1] == 'story':
-            acquirer = acquirers.InstagramStory(
-                colymer, client, '{}_story'.format(site_name))
+            acquirer = InstagramStoryAcquirer(colymer, client, '{}_story'.format(site_name))
         else:
-            acquirer = acquirers.Instagram(colymer, client, site_name)
+            acquirer = InstagramAcquirer(colymer, client, site_name)
     elif site_name == 'twitter':
-        client = Twitter(headers=headers, proxies=proxies,
-                         cookies=cookies, request_interval=15)
-        acquirer = acquirers.Twitter(colymer, client, site_name)
+        client = TwitterSite(headers=headers, proxies=proxies, cookie_path=cookie_path, request_interval=15)
+        acquirer = TwitterAcquirer(colymer, client, site_name)
 
     if not inspect:
         try:
@@ -132,4 +122,4 @@ if __name__ == "__main__":
             if auto:
                 send_error_mail(e)
         finally:
-            client.save_cookies(cookie_file)
+            client.close()

@@ -1,12 +1,13 @@
-import sites
+from sites.colymer import ColymerSite
+from sites.weibo import WeiboSite
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse
 import posixpath
 
 
-class Weibo(Acquirer):
-    def __init__(self, colymer: sites.Colymer, weibo: sites.Weibo, collection: str):
+class WeiboAcquirer(Acquirer):
+    def __init__(self, colymer: ColymerSite, weibo: WeiboSite, collection: str):
         super().__init__(colymer)
         self.weibo = weibo
         self.collection = collection
@@ -181,28 +182,28 @@ class Weibo(Acquirer):
                 metadata['type'] = 'picture'
                 if 'pic_ids' in status:
                     for pid in status['pic_ids']:
-                        Weibo.append_pics(
+                        self.append_pics(
                             attachments, status['pic_infos'][pid])
                 else:
                     # 有page_info的情况下单个图片可能会缩成查看图片
                     for struct in status['url_struct']:
                         if struct['url_title'] == '查看图片':
                             for pid in struct['pic_ids']:
-                                Weibo.append_pics(
+                                self.append_pics(
                                     attachments, struct['pic_infos'][pid])
 
             if 'mix_media_info' in status:
                 metadata['type'] = 'mix'
                 for item in status['mix_media_info']['items']:
                     if item['type'] == 'video':
-                        Weibo.append_video(attachments, item['data'])
+                        self.append_video(attachments, item['data'])
                     elif item['type'] == 'pic':
-                        Weibo.append_pics(attachments, item['data'])
+                        self.append_pics(attachments, item['data'])
 
             if 'page_info' in status and 'object_type' in status['page_info']:
                 metadata['type'] = status['page_info']['object_type']
                 if status['page_info']['object_type'] == 'video':
-                    Weibo.append_video(attachments, status['page_info'])
+                    self.append_video(attachments, status['page_info'])
 
                 elif status['page_info']['object_type'] == 'article':
                     # TODO 放到新的collection中
@@ -243,12 +244,12 @@ class Weibo(Acquirer):
             if 'pics' in status:
                 metadata['type'] = 'picture'
                 for pic in status['pics']:
-                    Weibo.append_pics_m(attachments, pic)
+                    self.append_pics_m(attachments, pic)
 
             if 'page_info' in status:
                 metadata['type'] = status['page_info']['type']
                 if status['page_info']['type'] == 'video':
-                    Weibo.append_video_m(attachments, status['page_info'])
+                    self.append_video_m(attachments, status['page_info'])
 
                 elif status['page_info']['type'] == 'article':
                     # TODO 放到新的collection中 一例：since_id=4559721145047710

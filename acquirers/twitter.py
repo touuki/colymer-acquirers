@@ -1,12 +1,13 @@
-import sites
+from sites.colymer import ColymerSite
+from sites.twitter import TwitterSite
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse
 import posixpath
 
 
-class Twitter(Acquirer):
-    def __init__(self, colymer: sites.Colymer, twitter: sites.Twitter, collection: str):
+class TwitterAcquirer(Acquirer):
+    def __init__(self, colymer: ColymerSite, twitter: TwitterSite, collection: str):
         super().__init__(colymer)
         self.twitter = twitter
         self.collection = collection
@@ -69,7 +70,7 @@ class Twitter(Acquirer):
         if 'extended_entities' in tweet['legacy']:
             for media in tweet['legacy']['extended_entities']['media']:
                 metadata['type'] = media['type']
-                Twitter.append_attachment(attachments, media)
+                self.append_attachment(attachments, media)
 
         if 'quoted_status' in tweet:
             metadata['quoted_status_id'] = tweet['quoted_status']['rest_id']
