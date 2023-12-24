@@ -8,6 +8,9 @@ class ColymerSite(Site):
         super().__init__(**kw)
         self.api_prefix = api_prefix
 
+    def get_attachment_url(self, collection, path):
+        return urllib.parse.urljoin(self.api_prefix, 'attachment/{}?path={}'.format(collection, path))
+
     def get_articles(self, collection, pipeline, collation=None):
         params = {'pipeline': json.dumps(pipeline, separators=(',', ':'))}
         if collation is not None:

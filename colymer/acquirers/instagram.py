@@ -1,5 +1,4 @@
-from sites.colymer import ColymerSite
-from sites.instagram import InstagramSite
+from ..sites import ColymerSite, InstagramSite
 from .acquirer import Acquirer
 from datetime import datetime
 from urllib.parse import urlparse

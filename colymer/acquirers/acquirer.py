@@ -1,4 +1,4 @@
-from sites.colymer import ColymerSite
+from ..sites import ColymerSite
 
 
 class Acquirer:

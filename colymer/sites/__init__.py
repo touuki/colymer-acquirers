@@ -1,3 +1,4 @@
+from .site import Site
 from .colymer import ColymerSite
 from .instagram import InstagramSite
 from .weibo import WeiboSite

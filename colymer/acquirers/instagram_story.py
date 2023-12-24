@@ -1,7 +1,6 @@
 from datetime import datetime
 import posixpath
-from sites.colymer import ColymerSite
-from sites.instagram import InstagramSite
+from ..sites import ColymerSite, InstagramSite
 from urllib.parse import urlparse
 
 

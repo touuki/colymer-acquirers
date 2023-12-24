@@ -14,16 +14,17 @@ class Site:
         if headers is not None:
             self.session.headers.update(headers)
 
-        self.cookie_path = "{}.cookie".format(self.__class__.__name__) if cookie_path is None else cookie_path
+        self.cookie_path = cookie_path
 
-        if os.path.exists(self.cookie_path):
+        if self.cookie_path is not None and os.path.exists(self.cookie_path):
             self.load_cookies(self.cookie_path)
 
         self.request_interval = request_interval
         self.request_last_timestamp = 0
 
     def close(self):
-        self.save_cookies(self.cookie_path)
+        if self.cookie_path is not None:
+            self.save_cookies(self.cookie_path)
 
     @staticmethod
     def request_wrapper(fn):
