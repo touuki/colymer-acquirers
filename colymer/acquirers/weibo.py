@@ -18,15 +18,15 @@ class WeiboAcquirer(Acquirer):
         
         if 'mp4_720p_mp4' in page_info['urls']:
             quality = '720P'
-            directly_transfer = page_info['media_info']['duration'] < 2400
+            # directly_transfer = page_info['media_info']['duration'] < 2400
             url_str = page_info['urls']['mp4_720p_mp4']
         elif 'mp4_hd_mp4' in page_info['urls']:
             quality = '480P'
-            directly_transfer = page_info['media_info']['duration'] < 4800
+            # directly_transfer = page_info['media_info']['duration'] < 4800
             url_str = page_info['urls']['mp4_hd_mp4']
         elif 'mp4_ld_mp4' in page_info['urls']:
             quality = '360P'
-            directly_transfer = page_info['media_info']['duration'] < 9600
+            # directly_transfer = page_info['media_info']['duration'] < 9600
             url_str = page_info['urls']['mp4_ld_mp4']
 
         url = urlparse(url_str)
@@ -40,7 +40,7 @@ class WeiboAcquirer(Acquirer):
                 'quality': quality
             },
             'persist_info': {
-                'directly_transfer': directly_transfer,
+                'directly_transfer': True,
                 'path': url.path,
                 'referer': 'https://m.weibo.cn/',
             }
@@ -74,7 +74,7 @@ class WeiboAcquirer(Acquirer):
                 },
                 'persist_info': {
                     # 300MB
-                    'directly_transfer': play_info['size'] < 314572800,
+                    'directly_transfer': True, # play_info['size'] < 314572800,
                     'path': url.path,
                     'referer': 'https://weibo.com/',
                 }
@@ -82,15 +82,15 @@ class WeiboAcquirer(Acquirer):
         else:
             if media_info['mp4_720p_mp4']:
                 quality = '720P'
-                directly_transfer = media_info['duration'] < 2400
+                # directly_transfer = media_info['duration'] < 2400
                 url_str = media_info['mp4_720p_mp4']
             elif media_info['mp4_hd_url']:
                 quality = '480P'
-                directly_transfer = media_info['duration'] < 4800
+                # directly_transfer = media_info['duration'] < 4800
                 url_str = media_info['mp4_hd_url']
             elif media_info['mp4_sd_url']:
                 quality = '360P'
-                directly_transfer = media_info['duration'] < 9600
+                # directly_transfer = media_info['duration'] < 9600
                 url_str = media_info['mp4_sd_url']
 
             url = urlparse(url_str)
@@ -104,7 +104,7 @@ class WeiboAcquirer(Acquirer):
                     'quality': quality
                 },
                 'persist_info': {
-                    'directly_transfer': directly_transfer,
+                    'directly_transfer': True,
                     'path': url.path,
                     'referer': 'https://weibo.com/',
                 }
