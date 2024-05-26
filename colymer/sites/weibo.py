@@ -17,8 +17,7 @@ class WeiboSite(Site):
         return self.config['login']
 
     def logout(self):
-        self.session.get('https://m.weibo.cn/logout',
-                         headers={'Referer': 'https://m.weibo.cn/home/setting'})
+        self.session.get('https://m.weibo.cn/logout', headers={'Referer': 'https://m.weibo.cn/home/setting'}, timeout=self.timeout)
 
     def login(self, username=None, password=None):
         if username is None:
@@ -27,7 +26,7 @@ class WeiboSite(Site):
         if password is None:
             password = getpass('Please enter password: ')
         self.session.get(
-            'https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2F')
+            'https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2F', timeout=self.timeout)
         data = {
             'username': username,
             'password': password,
@@ -48,8 +47,7 @@ class WeiboSite(Site):
         headers = {
             'Referer': 'https://passport.weibo.cn/signin/login?entry=mweibo&res=wel&wm=3349&r=https%3A%2F%2Fm.weibo.cn%2F'
         }
-        response = self.session.post(
-            'https://passport.weibo.cn/sso/login', data=data, headers=headers)
+        response = self.session.post('https://passport.weibo.cn/sso/login', data=data, headers=headers, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('sso login failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -58,8 +56,7 @@ class WeiboSite(Site):
             raise Exception('sso login unexpected retcode. {} {} {}'.format(
                 response.status_code, response.reason, result))
 
-        response = self.session.get(
-            result['data']['errurl'], headers=headers)
+        response = self.session.get(result['data']['errurl'], headers=headers, timeout=self.timeout)
         search = re.search(
             r'phoneList\: JSON\.parse\(\'(.*)\'\)\,$', response.text, flags=re.M)
         phone = json.loads(search.group(1))[0]
@@ -78,7 +75,7 @@ class WeiboSite(Site):
                         'number': phone['number'],
                         'mask_mobile': phone['maskMobile'],
                         'msg_type': msg_type
-                    }, headers=headers)
+                    }, headers=headers, timeout=self.timeout)
                     if response.status_code != 200:
                         raise Exception('secondverify ajsend failed. {} {} {}'.format(
                             response.status_code, response.reason, response.text))
@@ -87,13 +84,13 @@ class WeiboSite(Site):
                         raise Exception('secondverify ajsend failed. {} {} {}'.format(
                             response.status_code, response.reason, result))
                     response = self.session.get(
-                        'https://passport.weibo.cn/signin/secondverify/check', headers=headers)
+                        'https://passport.weibo.cn/signin/secondverify/check', headers=headers, timeout=self.timeout)
                 elif i == '2':
                     msg_type = 'private_msg'
                     response = self.session.get('https://passport.weibo.cn/signin/secondverify/index', params={
-                                                'way': msg_type}, headers={'Referer': response.url})
+                                                'way': msg_type}, headers={'Referer': response.url}, timeout=self.timeout)
                     response = self.session.get('https://passport.weibo.cn/signin/secondverify/ajsend', params={
-                        'msg_type': msg_type}, headers={'Referer': response.url})
+                        'msg_type': msg_type}, headers={'Referer': response.url}, timeout=self.timeout)
                     if response.status_code != 200:
                         raise Exception('secondverify ajsend failed. {} {} {}'.format(
                             response.status_code, response.reason, response.text))
@@ -116,14 +113,13 @@ class WeiboSite(Site):
                 'code': code
             }, headers={
                 'Referer': 'https://passport.weibo.cn/signin/secondverify/check'
-            })
+            }, timeout=self.timeout)
             if response.status_code != 200:
                 raise Exception('secondverify check failed. {} {} {}'.format(
                     response.status_code, response.reason, response.text))
             result = response.json()
             if result['retcode'] == 100000:
-                self.session.get(result['data']['url'], headers={
-                                 'Referer': 'https://passport.weibo.cn/'})
+                self.session.get(result['data']['url'], headers={'Referer': 'https://passport.weibo.cn/'}, timeout=self.timeout)
                 break
             elif result['retcode'] == 50050021:
                 print('Maybe wrong code. Please enter again. {}'.format(
@@ -135,17 +131,15 @@ class WeiboSite(Site):
         self.update_config()
 
     def update_config(self):
-        self.session.get('https://weibo.com')
+        self.session.get('https://weibo.com', timeout=self.timeout)
         headers = {
             'Referer': 'https://m.weibo.cn',
             'x-requested-with': 'XMLHttpRequest'
         }
-        xsrf_token = self.session.cookies.get(
-            'XSRF-TOKEN', domain='.m.weibo.cn')
+        xsrf_token = self.session.cookies.get('XSRF-TOKEN', domain='.m.weibo.cn')
         if xsrf_token:
             headers['x-xsrf-token'] = xsrf_token
-        response = self.session.get(
-            'https://m.weibo.cn/api/config', headers=headers, allow_redirects=False)
+        response = self.session.get('https://m.weibo.cn/api/config', headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('config failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -180,7 +174,7 @@ class WeiboSite(Site):
         if xsrf_token:
             headers['x-xsrf-token'] = xsrf_token
         response = self.session.get('https://m.weibo.cn/api/container/getIndex',
-                                    params=params, headers=headers, allow_redirects=False)
+                                    params=params, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('getIndex_timeline failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -207,7 +201,7 @@ class WeiboSite(Site):
         if xsrf_token:
             headers['x-xsrf-token'] = xsrf_token
         response = self.session.get('https://weibo.com/ajax/profile/searchblog',
-                                    params=params, headers=headers, allow_redirects=False)
+                                    params=params, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('profile_searchblog failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -237,7 +231,7 @@ class WeiboSite(Site):
         if xsrf_token:
             headers['x-xsrf-token'] = xsrf_token
         response = self.session.get('https://weibo.com/ajax/statuses/mymblog',
-                                    params=params, headers=headers, allow_redirects=False)
+                                    params=params, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('statuses_mymblog failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -259,7 +253,7 @@ class WeiboSite(Site):
         if xsrf_token:
             headers['x-xsrf-token'] = xsrf_token
         response = self.session.get('https://weibo.com/ajax/statuses/show',
-                                    params={'id': bid}, headers=headers, allow_redirects=False)
+                                    params={'id': bid}, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('statuses_show failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -280,7 +274,7 @@ class WeiboSite(Site):
         if xsrf_token:
             headers['x-xsrf-token'] = xsrf_token
         response = self.session.get('https://weibo.com/ajax/statuses/longtext',
-                                    params={'id': bid}, headers=headers, allow_redirects=False)
+                                    params={'id': bid}, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('statuses_longtext failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -303,7 +297,7 @@ class WeiboSite(Site):
             'page': '/tv/show/{}'.format(oid)
         }, data={
             'data': json.dumps({"Component_Play_Playinfo": {"oid": oid}})
-        }, headers=headers, allow_redirects=False)
+        }, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             raise Exception('statuses_mymblog failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -316,8 +310,8 @@ class WeiboSite(Site):
 
     @Site.request_wrapper
     def detail(self, mid):
-        #response = self.session.get('https://m.weibo.cn/status/{}'.format(mid))
-        response = self.session.get('https://m.weibo.cn/detail/{}'.format(mid))
+        #response = self.session.get('https://m.weibo.cn/status/{}'.format(mid), timeout=self.timeout)
+        response = self.session.get('https://m.weibo.cn/detail/{}'.format(mid), timeout=self.timeout)
         if not response.ok:
             raise Exception('detail failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))

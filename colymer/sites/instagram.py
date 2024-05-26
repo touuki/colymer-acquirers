@@ -8,7 +8,7 @@ class InstagramSite(Site):
     # story url: Login required GET https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={user_id}
 
     def is_logined(self):
-        response = self.session.get('https://www.instagram.com/', allow_redirects=False)
+        response = self.session.get('https://www.instagram.com/', allow_redirects=False, timeout=self.timeout)
         return response.status_code == 200
 
     def login(self, sessionid=None):
@@ -37,7 +37,7 @@ class InstagramSite(Site):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36'
         }
         response = self.session.get('https://i.instagram.com/api/v1/feed/reels_media/', params={'reel_ids': user_id},
-                                    headers=headers, allow_redirects=False)
+                                    headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             if response.status_code == 302:
                 raise Exception('reels_media failed. {} {} {} {}'.format(
@@ -67,14 +67,13 @@ class InstagramSite(Site):
             'Referer': 'https://www.instagram.com/',
             'x-requested-with': 'XMLHttpRequest'
         }
-        csrftoken = self.session.cookies.get(
-            'csrftoken', domain='.instagram.com')
+        csrftoken = self.session.cookies.get('csrftoken', domain='.instagram.com')
         if csrftoken:
             headers['x-csrftoken'] = csrftoken
         response = self.session.get('https://www.instagram.com/graphql/query/', params={
             'query_hash': '32b14723a678bd4628d70c1f877b94c9',
             'variables': json.dumps(variables, separators=(',', ':'))
-        }, headers=headers, allow_redirects=False)
+        }, headers=headers, allow_redirects=False, timeout=self.timeout)
         if response.status_code != 200:
             if response.status_code == 302:
                 raise Exception('owner_to_timeline_media failed. {} {} {} {}'.format(

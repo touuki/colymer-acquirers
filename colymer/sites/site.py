@@ -7,7 +7,7 @@ from functools import wraps
 
 
 class Site:
-    def __init__(self, headers=None, proxies=None, cookie_path=None, request_interval: float = 0):
+    def __init__(self, headers=None, proxies=None, cookie_path=None, timeout=None, request_interval: float = 0):
         self.session = requests.Session()
         if proxies is not None:
             self.session.proxies.update(proxies)
@@ -15,6 +15,7 @@ class Site:
             self.session.headers.update(headers)
 
         self.cookie_path = cookie_path
+        self.timeout = timeout
 
         if self.cookie_path is not None and os.path.exists(self.cookie_path):
             self.load_cookies(self.cookie_path)

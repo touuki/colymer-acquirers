@@ -16,7 +16,7 @@ class ColymerSite(Site):
         if collation is not None:
             params['collation'] = json.dumps(collation, separators=(',', ':'))
         response = self.session.get(urllib.parse.urljoin(
-            self.api_prefix, 'article/{}'.format(collection)), params=params)
+            self.api_prefix, 'article/{}'.format(collection)), params=params, timeout=self.timeout)
         if not response.ok:
             raise Exception('GET articles failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -24,7 +24,7 @@ class ColymerSite(Site):
 
     def post_article(self, collection, article, resolve_attachments=False, overwrite=False):
         response = self.session.post(urllib.parse.urljoin(self.api_prefix, 'article/{}'.format(collection)),
-                                     params={'resolve_attachments': resolve_attachments, 'overwrite': overwrite}, json=article)
+                                     params={'resolve_attachments': resolve_attachments, 'overwrite': overwrite}, json=article, timeout=self.timeout)
         if not response.ok:
             raise Exception('POST article failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -36,7 +36,7 @@ class ColymerSite(Site):
             params['projection'] = json.dumps(
                 projection, separators=(',', ':'))
         response = self.session.get(urllib.parse.urljoin(
-            self.api_prefix, 'article/{}/{}'.format(collection, _id)), params=params)
+            self.api_prefix, 'article/{}/{}'.format(collection, _id)), params=params, timeout=self.timeout)
         if not response.ok:
             raise Exception('GET article failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -44,14 +44,14 @@ class ColymerSite(Site):
 
     def put_article(self, collection, _id, update):
         response = self.session.put(urllib.parse.urljoin(self.api_prefix, 'article/{}/{}'.format(
-            collection, _id)), json=update)
+            collection, _id)), json=update, timeout=self.timeout)
         if not response.ok:
             raise Exception('PUT article failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
 
     def delete_article(self, collection, _id):
         response = self.session.delete(urllib.parse.urljoin(
-            self.api_prefix, 'article/{}/{}'.format(collection, _id)))
+            self.api_prefix, 'article/{}/{}'.format(collection, _id)), timeout=self.timeout)
         if not response.ok:
             raise Exception('DELETE article failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -61,7 +61,7 @@ class ColymerSite(Site):
         if max_top_id is not None:
             params['max_top_id'] = max_top_id
         response = self.session.get(urllib.parse.urljoin(
-            self.api_prefix, 'chain_block/{}/recent'.format(chain_id)), params=params)
+            self.api_prefix, 'chain_block/{}/recent'.format(chain_id)), params=params, timeout=self.timeout)
         if response.status_code == 404:
             return None
         if not response.ok:
@@ -71,7 +71,7 @@ class ColymerSite(Site):
 
     def post_block(self, chain_id, block):
         response = self.session.post(urllib.parse.urljoin(
-            self.api_prefix, 'chain_block/{}'.format(chain_id)), json=block)
+            self.api_prefix, 'chain_block/{}'.format(chain_id)), json=block, timeout=self.timeout)
         if not response.ok:
             raise Exception('POST block failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
@@ -79,14 +79,14 @@ class ColymerSite(Site):
 
     def put_block(self, chain_id, _id, block):
         response = self.session.put(urllib.parse.urljoin(self.api_prefix, 'chain_block/{}/{}'.format(
-            chain_id, _id)), json=block)
+            chain_id, _id)), json=block, timeout=self.timeout)
         if not response.ok:
             raise Exception('PUT block failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))
 
     def delete_block(self, chain_id, _id):
         response = self.session.delete(urllib.parse.urljoin(self.api_prefix, 'chain_block/{}/{}'.format(
-            chain_id, _id)))
+            chain_id, _id)), timeout=self.timeout)
         if not response.ok:
             raise Exception('DELETE block failed. {} {} {}'.format(
                 response.status_code, response.reason, response.text))

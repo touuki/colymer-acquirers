@@ -22,7 +22,7 @@ class TwitterSite(Site):
         if guest_token:
             return guest_token
         else:
-            response = self.session.get('https://twitter.com/')
+            response = self.session.get('https://twitter.com/', timeout=self.timeout)
             searchObj = re.search(
                 r'document\.cookie="gt=(\d+); Max-Age=(\d+); Domain=\.twitter\.com; Path=/; Secure"',
                 response.text
@@ -82,6 +82,7 @@ class TwitterSite(Site):
                 'variables': json.dumps(variables, separators=(',', ':'))
             },
             headers=self._get_api_headers(),
+            timeout=self.timeout,
             allow_redirects=False
         )
         return self._postprocess_response(response, 'user_by_rest_id_without_results')
@@ -110,6 +111,7 @@ class TwitterSite(Site):
                 'variables': json.dumps(variables, separators=(',', ':'))
             },
             headers=self._get_api_headers(),
+            timeout=self.timeout,
             allow_redirects=False
         )
         return self._postprocess_response(response, 'user_tweets')
@@ -138,6 +140,7 @@ class TwitterSite(Site):
                 'variables': json.dumps(variables, separators=(',', ':'))
             },
             headers=self._get_api_headers(),
+            timeout=self.timeout,
             allow_redirects=False
         )
         return self._postprocess_response(response, 'user_tweets_and_replies')
